@@ -18,12 +18,24 @@
     <ClCompile Include="Startup.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="SocketReader.cpp">
+    <ClCompile Include="HttpClient.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="HttpRequest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="HttpResponse.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SocketReader.h">
+    <ClInclude Include="HttpClient.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="HttpRequest.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="HttpResponse.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
