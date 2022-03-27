@@ -4,6 +4,7 @@
 #include <ws2tcpip.h>
 #include <iostream>
 #include <Windows.h>
+#include "HttpResponse.h"
 #include "HttpClient.h"
 #pragma comment(lib, "ws2_32")
 
@@ -48,6 +49,8 @@ int main()
 		string resp = httpClient.ReceiveHead();
 		cout << u8"服务器" << endl;
 		cout << resp;
+
+		HttpResponse::parseResponse(resp);
 	}
 	catch (int e)
 	{
