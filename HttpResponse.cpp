@@ -10,6 +10,9 @@ HttpResponse HttpResponse::parseResponse(string resp)
 	bool match_re = regex_search(resp, result, re);
 	if (match_re)
 	{
+		regex attris("(.+)[ ]*:[ ]*(.+)\r\n");
+		smatch result_attris;
+
 		//legel http response head
 		//TODO only one attribute can be matched
 		for (int i = 0; i < result.size(); i++)
