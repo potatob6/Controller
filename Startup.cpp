@@ -11,7 +11,6 @@
 using namespace std;
 int main()
 {
-
 	SetConsoleOutputCP(CP_UTF8);
 	WSADATA wsa;
 	WSAStartup(MAKEWORD(2, 2), &wsa);
