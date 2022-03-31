@@ -1,5 +1,4 @@
 #include "HttpResponse.h"
-#include "GlobalParameters.h"
 
 using namespace std;
 HttpResponse HttpResponse::parseResponse(string resp)
@@ -11,9 +10,9 @@ HttpResponse HttpResponse::parseResponse(string resp)
 	bool match_re = regex_search(resp, result, re);
 	if (match_re)
 	{
-		//split the string
+		//匹配属性部分
 
-		list<string> *lparameters = new list<string>;
+		list<string>* lparameters = new list<string>;
 		const char* delimiter = "\r\n";
 		char* str = (char*)resp.c_str();
 		char* token = NULL;
@@ -32,8 +31,23 @@ HttpResponse HttpResponse::parseResponse(string resp)
 
 		regex attris("(.+)[ ]*:[ ]*(.+)");     //HTTP属性匹配表达式
 
-		//TODO 遍历获取每个HTTP属性
 		auto itor = lparameters->begin();
+		//匹配请求行
+		HttpResponse hresp;
+		{
+			regex reqline_re("(HTTP/1.[01]) ([0-9]{3})[ ]*");     //无描述
+			regex reqline_hre("(HTTP/1.[01]) ([0-9]{3})[ ]+(.+)");//有描述
+			smatch result1;
+			bool ret_1 = regex_search(*itor, result1, reqline_re);
+			hresp.httpVersion = result1[1];
+			hresp.returnCode = result1[2];
+			if (ret_1 == true)
+				hresp.returnCodeDescription = "";
+			else
+				hresp.returnCodeDescription = result1[3];
+		}
+
+		itor++;
 		for (; itor != lparameters->end(); itor++)
 		{
 			smatch result_attris;
@@ -44,15 +58,36 @@ HttpResponse HttpResponse::parseResponse(string resp)
 				cout << u8"Key:" << result_attris[1] << u8", Value:" << result_attris[2] << endl;
 				//printf_s(u8"Key: %s, Value: %s\n", result_attris[1], result_attris[2]);
 #endif
+				hresp.attributes.push_back(pair<string, string>(result_attris[1], result_attris[2]));
 			}
 		}
 		delete lparameters;
-		return HttpResponse();
+		return hresp;
 	}
 	else
 	{
+#ifdef DEBUG_MODE
 		cout << u8"非法Http响应" << endl;
+#endif
 	}
 	throw - 1;
-	return HttpResponse();
+	HttpResponse faild;
+	return faild;
+}
+
+HttpResponse::HttpResponse(HttpResponse& A)
+{
+	httpVersion = A.httpVersion;
+	returnCode = A.returnCode;
+	returnCodeDescription = A.returnCodeDescription;
+	auto itor = A.attributes.begin();
+	for (; itor != A.attributes.end(); itor++)
+	{
+		auto s1 = itor->first;
+		auto s2 = itor->second;
+		pair<string, string> p;
+		p.first = s1;
+		p.second = s2;
+		attributes.push_back(p);
+	}
 }

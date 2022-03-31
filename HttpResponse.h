@@ -4,9 +4,11 @@
 #include <map>
 #include <list>
 #include <regex>
-#include <Windows.h>
 #include <iostream>
+#include <Windows.h>
 #include <string>
+#include "GlobalParameters.h"
+
 
 using namespace std;
 class HttpResponse
@@ -18,4 +20,6 @@ public:
 	list<pair<string, string>> attributes;
 public:
 	static HttpResponse parseResponse(string resp);
+	HttpResponse();
+	HttpResponse(HttpResponse& A);
 };
