@@ -75,7 +75,7 @@ HttpResponse HttpResponse::parseResponse(string resp)
 	return faild;
 }
 
-HttpResponse::HttpResponse(HttpResponse& A)
+HttpResponse::HttpResponse(const HttpResponse& A)
 {
 	httpVersion = A.httpVersion;
 	returnCode = A.returnCode;
@@ -91,6 +91,23 @@ HttpResponse::HttpResponse(HttpResponse& A)
 		attributes.push_back(p);
 	}
 }
+
+//HttpResponse HttpResponse::operator=(const HttpResponse& A)
+//{
+//	httpVersion = A.httpVersion;
+//	returnCode = A.returnCode;
+//	returnCodeDescription = A.returnCodeDescription;
+//	auto itor = A.attributes.begin();
+//	for (; itor != A.attributes.end(); itor++)
+//	{
+//		auto s1 = itor->first;
+//		auto s2 = itor->second;
+//		pair<string, string> p;
+//		p.first = s1;
+//		p.second = s2;
+//		attributes.push_back(p);
+//	}
+//}
 
 HttpResponse::HttpResponse()
 {

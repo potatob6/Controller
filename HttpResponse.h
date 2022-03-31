@@ -20,6 +20,7 @@ public:
 	list<pair<string, string>> attributes;
 public:
 	static HttpResponse parseResponse(string resp);
+	//HttpResponse operator=(const HttpResponse& A);
 	HttpResponse();
-	HttpResponse(HttpResponse& A);
+	HttpResponse(const HttpResponse& A);
 };

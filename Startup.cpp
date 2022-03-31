@@ -56,7 +56,8 @@ int main()
 		cout << resp;
 #endif
 
-		HttpResponse::parseResponse(resp);
+		HttpResponse htsp = HttpResponse::parseResponse(resp);
+		cout << htsp.returnCode << endl;
 	}
 	catch (int e)
 	{
