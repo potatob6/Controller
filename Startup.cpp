@@ -4,6 +4,7 @@
 #include <ws2tcpip.h>
 #include <iostream>
 #include <Windows.h>
+#include "GlobalParameters.h"
 #include "HttpResponse.h"
 #include "HttpClient.h"
 #pragma comment(lib, "ws2_32")
@@ -34,9 +35,12 @@ int main()
 	{
 		map<string, string> mm;
 		string sendStr = httpClient.Send("GET", "/JSP/", content1);
+
+#ifdef DEBUG_MODE
 		cout << u8"本地发送的消息" << endl;
 		cout << sendStr;
 		cout << u8"end" << endl;
+#endif
 	}
 	catch (int e)
 	{
@@ -46,14 +50,19 @@ int main()
 	try 
 	{
 		string resp = httpClient.ReceiveHead();
-		cout << u8"服务器" << endl;
+
+#ifdef DEBUG_MODE
+		cout << u8"服务器返回头部" << endl;
 		cout << resp;
+#endif
 
 		HttpResponse::parseResponse(resp);
 	}
 	catch (int e)
 	{
-		cout << u8"失败" << endl;
+#ifdef DEBUG_MODE
+		cout << u8"解析头部失败" << endl;
+#endif
 	}
 
 	closesocket(server);

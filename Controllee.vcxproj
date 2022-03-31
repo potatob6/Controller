@@ -145,6 +145,7 @@
     <ClCompile Include="Startup.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GlobalParameters.h" />
     <ClInclude Include="HttpClient.h" />
     <ClInclude Include="HttpRequest.h" />
     <ClInclude Include="HttpResponse.h" />
