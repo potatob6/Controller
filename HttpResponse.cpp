@@ -36,8 +36,12 @@ HttpResponse HttpResponse::parseResponse(string resp)
 		for (; itor != lparameters->end(); itor++)
 		{
 			smatch result_attris;
-			regex_search(*itor, result_attris, attris);
-			printf_s("Key: %s, Value: %s\n", result_attris[1], result_attris[2]);
+			bool ret = regex_search(*itor, result_attris, attris);
+
+			if (ret) {
+				cout << u8"Key:" << result_attris[1] << u8", Value:" << result_attris[2] << endl;
+				//printf_s(u8"Key: %s, Value: %s\n", result_attris[1], result_attris[2]);
+			}
 		}
 		delete lparameters;
 		return HttpResponse();
