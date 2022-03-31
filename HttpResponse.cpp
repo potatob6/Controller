@@ -91,3 +91,8 @@ HttpResponse::HttpResponse(HttpResponse& A)
 		attributes.push_back(p);
 	}
 }
+
+HttpResponse::HttpResponse()
+{
+
+}
