@@ -1,4 +1,6 @@
 #include "HttpResponse.h"
+#include <list>
+#include "MyUtils.h"
 
 using namespace std;
 HttpResponse HttpResponse::parseResponse(string resp)
@@ -111,5 +113,41 @@ HttpResponse::HttpResponse(const HttpResponse& A)
 
 HttpResponse::HttpResponse()
 {
+
+}
+
+string HttpResponse::toString()
+{
+	list<char> chars;
+	MyUtils::pushStringToList(httpVersion + " " + returnCode + 
+		((returnCodeDescription.compare("") == 0) ? ("\r\n") : (" " + returnCodeDescription+"\r\n")), chars);
+	{
+		auto itor = attributes.begin();
+		for (; itor != attributes.end(); itor++)
+		{
+			string first = itor->first;
+			string second = itor->second;
+			MyUtils::pushStringToList(first + ": " + second + "\r\n", chars);
+		}
+	}
+
+	MyUtils::pushStringToList("\r\n", chars);
+	
+	char* nn = new char[chars.size() + 1];
+	nn[chars.size()] = 0;
+	{
+		auto itor = chars.begin();
+		int i = 0;
+		for (; itor != chars.end(); itor++)
+		{
+			nn[i] = *itor;
+			i++;
+		}
+
+	}
+	string nn1(nn);
+	delete[] nn;
+	cout << nn1 << endl;
+	return nn1;
 
 }

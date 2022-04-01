@@ -1,5 +1,9 @@
 #include "HttpClient.h"
 #include "HttpRequest.h"
+#include <WinSock2.h>
+#include <stdlib.h>
+#include <ws2tcpip.h>
+#include "HttpResponse.h"
 
 char HttpClient::getNextByte()
 {
@@ -99,8 +103,8 @@ string HttpClient::Send(string method, string url, string content)
 	_itoa_s(content.size(), b1, 10);
 	httpRequest.setAttribute("Content-Length", b1);
 	httpRequest.setAttribute("Connection", "keep-alive");
-	if (ip.compare("") != 0 && port.compare("") != 0)
-		httpRequest.setAttribute("Host", ip + ":" + port);
+	if (ip.compare("") != 0 && iPort != 0)
+		httpRequest.setAttribute("Host", ip + ":" + sPort);
 
 	unsigned int len = httpRequest.toString().size();
 	const char* c1 = httpRequest.toString().c_str();
@@ -122,8 +126,8 @@ string HttpClient::Send(string method, string url, map<string, string> extraAttr
 	_itoa_s(content.size(), b1, 10);
 	httpRequest.setAttribute("Content-Length", b1);
 	httpRequest.setAttribute("Connection", "keep-alive");
-	if (ip.compare("") != 0 && port.compare("") != 0)
-		httpRequest.setAttribute("Host", ip + ":" + port);
+	if (ip.compare("") != 0 && iPort != 0)
+		httpRequest.setAttribute("Host", ip + ":" + sPort);
 	for (; key_itor != extraAttribute.end(); key_itor++)
 	{
 		string first = key_itor->first;
@@ -194,9 +198,8 @@ string HttpClient::ReceiveHead()
 
 }
 
-HttpClient::HttpClient(SOCKET socket)
+HttpClient::HttpClient()
 {
-	server = socket;
 	_recv_buf = new char[1024 * 1024 + 1];
 	_recv_buf[1024 * 1024] = 0;
 }
@@ -204,4 +207,86 @@ HttpClient::HttpClient(SOCKET socket)
 HttpClient::~HttpClient()
 {
 	delete[] _recv_buf;
+}
+
+void HttpClient::ReadBodyToFile(string filePath)
+{
+
+}
+
+string HttpClient::ReadBodyToMemory()
+{
+	return string();
+}
+
+int HttpClient::StartUp(string domain, int port)
+{
+	//域名解析
+	return 0;
+}
+
+int HttpClient::Close()
+{
+	return 0;
+}
+
+int HttpClient::StartUpIP(string ip, int port)
+{
+	this->ip = ip;
+	this->iPort = port;
+	if (port <= 0 || port >= 65536) {
+		throw - 2;
+		return -2;
+	}
+	char* portBuf = new char[7];
+	errno_t err = _itoa_s(port, portBuf, 7, 10);
+	if (err != 0)
+	{
+		//非法端口
+		throw - 2;
+		return -2;
+	}
+	sPort = portBuf;
+	delete[] portBuf;
+
+	wchar_t* wip = new wchar_t[21];
+	size_t convert;
+	errno_t ipRet = mbstowcs_s(&convert, wip, 21, ip.c_str(), _TRUNCATE);
+	if (ipRet == -1)
+	{
+		//ip非法
+		throw - 3;
+		return -3;
+	}
+	
+	//客户端正式启动
+	//创建与服务器的Socket
+
+	WSADATA wsa;
+	WSAStartup(MAKEWORD(2, 2), &wsa);
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(iPort);
+	InetPton(AF_INET, wip, &addr.sin_addr.S_un.S_addr);
+	SOCKET server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int connectRet = connect(server, (sockaddr*)&addr, sizeof(addr));
+
+	if (connectRet != 0)
+	{
+		//SOCKET连接错误
+		throw - 4;
+		return -4;
+	}
+
+	delete[] wip;
+	this->server = server;
+	//连接成功
+	string sendHeadBuf = Send("GET", "/notice_war_exploded/", "");
+	send(server, sendHeadBuf.c_str(), sendHeadBuf.size(), 0);
+
+	string recvHead = ReceiveHead();
+	HttpResponse response = HttpResponse::parseResponse(recvHead);
+	//TODO 解析头部信息
+
+	return 0;
 }

@@ -23,4 +23,5 @@ public:
 	//HttpResponse operator=(const HttpResponse& A);
 	HttpResponse();
 	HttpResponse(const HttpResponse& A);
+	string toString();
 };

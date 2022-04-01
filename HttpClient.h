@@ -24,16 +24,24 @@ private:
 
 	//read next byte and judge is this stream read end of http head
 	bool judgeRnRn(char nb);
-public:
 	SOCKET server;
+	string domain;
 	string ip;
-	string port;
+	int iPort;
 
-	string Send(string method, string url, string content);
-	string Send(string method, string url, map<string, string> extraAttribute, string content);
+	string sPort;
+public:
 
-	string ReceiveHead();
+	string Send(string method, string url, string content);       //发送Http报文，只含有默认属性
+	string Send(string method, string url, map<string, string> extraAttribute, string content); //发送Http报文，可以自定义属性
 
-	HttpClient(SOCKET socket);
+	string ReceiveHead();             //读取响应头
+	string ReadBodyToMemory();        //读取响应体到内存中
+	void ReadBodyToFile(string filePath); //读取响应体到文件中
+	int StartUp(string domain, int port);                    //以域名HttpClient开机
+	int StartUpIP(string ip, int port);                      //以IP HttpClient开机
+	int Close();                                   //HttpClient关机
+
+	HttpClient();
 	~HttpClient();
 };
