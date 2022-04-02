@@ -1,4 +1,4 @@
-#include "HttpClient.h"
+ï»¿#include "HttpClient.h"
 #include "HttpRequest.h"
 #include <WinSock2.h>
 #include <stdlib.h>
@@ -148,14 +148,14 @@ string HttpClient::ReceiveHead()
 	current_stream_length = 0;
 	unsigned char EOH = 0;     //end of head
 	list<char> l;
-	//+     £º %2B
-	//space £º %20
-	///     £º %2F
-	//?     £º %3F
-	//%     £º %25
-	//#     £º %23
-	//&     £º %26
-	//=     £º %3D
+	//+     ï¼š %2B
+	//space ï¼š %20
+	///     ï¼š %2F
+	//?     ï¼š %3F
+	//%     ï¼š %25
+	//#     ï¼š %23
+	//&     ï¼š %26
+	//=     ï¼š %3D
 	while (EOH != 0x1)
 	{
 		char nb = getNextByte();
@@ -223,7 +223,7 @@ string HttpClient::ReadBodyToMemory()
 
 int HttpClient::StartUp(string domain, int port)
 {
-	//TODO ÓòÃû½âÎö
+	//TODO åŸŸåè§£æ
 	return 0;
 }
 
@@ -301,7 +301,7 @@ int HttpClient::StartUpIP(string ip, int port)
 	errno_t err = _itoa_s(port, portBuf, 7, 10);
 	if (err != 0)
 	{
-		//·Ç·¨¶Ë¿Ú
+		//éæ³•ç«¯å£
 		throw - 2;
 		return -2;
 	}
@@ -313,13 +313,13 @@ int HttpClient::StartUpIP(string ip, int port)
 	errno_t ipRet = mbstowcs_s(&convert, wip, 21, ip.c_str(), _TRUNCATE);
 	if (ipRet == -1)
 	{
-		//ip·Ç·¨
+		//ipéæ³•
 		throw - 3;
 		return -3;
 	}
 	
-	//¿Í»§¶ËÕıÊ½Æô¶¯
-	//´´½¨Óë·şÎñÆ÷µÄSocket
+	//å®¢æˆ·ç«¯æ­£å¼å¯åŠ¨
+	//åˆ›å»ºä¸æœåŠ¡å™¨çš„Socket
 
 	WSADATA wsa;
 	WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -332,40 +332,40 @@ int HttpClient::StartUpIP(string ip, int port)
 
 	if (connectRet != 0)
 	{
-		//SOCKETÁ¬½Ó´íÎó
+		//SOCKETè¿æ¥é”™è¯¯
 		throw - 4;
 		return -4;
 	}
 
 	delete[] wip;
 	this->server = server;
-	//Á¬½Ó³É¹¦
+	//è¿æ¥æˆåŠŸ
 	string sendHeadBuf = Send("GET", "/notice_war_exploded/", "");
 	send(server, sendHeadBuf.c_str(), sendHeadBuf.size(), 0);
 
 	string recvHead = ReceiveHead();
 	HttpResponse response = HttpResponse::parseResponse(recvHead);
-	//TODO ½âÎöÍ·²¿ĞÅÏ¢
+	//TODO è§£æå¤´éƒ¨ä¿¡æ¯
 	SSP clh;
 	bool finded = response.getPair("Content-Length", &clh);
 	if (finded)
 	{
-		//ÓĞContent-Length
+		//æœ‰Content-Length
 		
 	}
 	else
 	{
-		//ÎŞContent-Length
+		//æ— Content-Length
 		SSP ckh;
 		bool findChunked = response.getPair("Transfer-Encoding", &ckh);
 		if (!findChunked)
 		{
-			//ÎŞTransfer-Encoding£¬²»ºÏ¹æµÄÍ·²¿£¬¶ªÆú
+			//æ— Transfer-Encodingï¼Œä¸åˆè§„çš„å¤´éƒ¨ï¼Œä¸¢å¼ƒ
 
 		}
 		else
 		{
-			//ÓĞTransfer-Encoding
+			//æœ‰Transfer-Encoding
 		}
 	}
 	return 0;
