@@ -20,8 +20,8 @@ public:
 	list<pair<string, string>> attributes;
 public:
 	static HttpResponse parseResponse(string resp);
-	//HttpResponse operator=(const HttpResponse& A);
 	HttpResponse();
-	HttpResponse(const HttpResponse& A);
+	HttpResponse(const HttpResponse&);
+	bool getPair(string, SSP*);               //遍历查找对应的Key
 	string toString();
 };

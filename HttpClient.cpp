@@ -3,8 +3,11 @@
 #include <WinSock2.h>
 #include <stdlib.h>
 #include <ws2tcpip.h>
+#include <iostream>
+#include "GlobalParameters.h"
 #include "HttpResponse.h"
 
+using namespace std;
 char HttpClient::getNextByte()
 {
 	if (byte_pointer == total_recv)
@@ -26,10 +29,6 @@ char HttpClient::getNextByte()
 
 bool HttpClient::judgeRn0Rn(char nb)
 {
-	if (current_stream_length == 10)
-	{
-		printf("1234\n");
-	}
 	if (nb == '\r' && (getRn0Rn == 0 || getRn0Rn == 3))
 	{
 		getRn0Rn++;
@@ -146,6 +145,7 @@ string HttpClient::Send(string method, string url, map<string, string> extraAttr
 
 string HttpClient::ReceiveHead()
 {
+	current_stream_length = 0;
 	unsigned char EOH = 0;     //end of head
 	list<char> l;
 	//+     ： %2B
@@ -179,6 +179,7 @@ string HttpClient::ReceiveHead()
 		if (judgeRnRn(nb))
 		{
 			EOH = 1;
+			enterEscapeMode = 0;
 		}
 		//printf("RnRn: %ud\n", getRnRn);
 		l.push_back(nb);
@@ -211,23 +212,81 @@ HttpClient::~HttpClient()
 
 void HttpClient::ReadBodyToFile(string filePath)
 {
-
+	//TODO
 }
 
 string HttpClient::ReadBodyToMemory()
 {
+	//TODO
 	return string();
 }
 
 int HttpClient::StartUp(string domain, int port)
 {
-	//域名解析
+	//TODO 域名解析
 	return 0;
 }
 
 int HttpClient::Close()
 {
 	return 0;
+}
+
+string HttpClient::ReadNextLineToMemory()
+{
+	bool escapingMode = false;
+	unsigned char Rn = 0;
+	list<char> ls;
+	char nextByte = getNextByte();
+	while (Rn != 2)
+	{
+		if ((nextByte == u8'\\' || nextByte == u8'\r' || nextByte == u8'\n') && escapingMode)
+		{
+			Rn = 0;
+			ls.push_back(nextByte);
+			escapingMode = false;
+			continue;
+		}
+
+		if (nextByte == u8'\\' && escapingMode == false)
+		{
+			Rn = 0;
+			escapingMode = true;
+			continue;
+		}
+
+		if (nextByte == u8'\r' && Rn == 0)
+		{
+			Rn++;
+			continue;
+		}
+
+		if (nextByte == u8'\n' && Rn == 1)
+		{
+			Rn++;
+			continue;
+		}
+
+		ls.push_back(nextByte);
+	}
+	char* buf = new char[ls.size() + 1];
+	buf[ls.size()] = 0;
+	auto itor = ls.begin();
+	unsigned int i = 0;
+	for (; itor != ls.end(); itor++)
+	{
+		buf[i] = *itor;
+		i++;
+	}
+	delete[] buf;
+	string nn(buf);
+	return buf;
+}
+
+string HttpClient::ReadContentLengthToMemory(unsigned long long len)
+{
+	//TODO
+	return string();
 }
 
 int HttpClient::StartUpIP(string ip, int port)
@@ -287,6 +346,27 @@ int HttpClient::StartUpIP(string ip, int port)
 	string recvHead = ReceiveHead();
 	HttpResponse response = HttpResponse::parseResponse(recvHead);
 	//TODO 解析头部信息
+	SSP clh;
+	bool finded = response.getPair("Content-Length", &clh);
+	if (finded)
+	{
+		//有Content-Length
+		
+	}
+	else
+	{
+		//无Content-Length
+		SSP ckh;
+		bool findChunked = response.getPair("Transfer-Encoding", &ckh);
+		if (!findChunked)
+		{
+			//无Transfer-Encoding，不合规的头部，丢弃
 
+		}
+		else
+		{
+			//有Transfer-Encoding
+		}
+	}
 	return 0;
 }

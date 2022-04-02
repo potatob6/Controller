@@ -5,7 +5,7 @@
 using namespace std;
 HttpResponse HttpResponse::parseResponse(string resp)
 {
-	char* buf = new char[10];
+	//char* buf = new char[10];
 	regex re("(HTTP/1.[10]) ([0-9]{3}).*\r\n((.+)[ ]*:[ ]*(.+)\r\n)*\r\n");
 	//regex re("(HTTP/1.[01]) ([0-9]{3})([ ]*.*)\n((.+)[ ]*:[ ]*(.+)\n)*");
 	smatch result;
@@ -116,11 +116,12 @@ HttpResponse::HttpResponse()
 
 }
 
+
 string HttpResponse::toString()
 {
 	list<char> chars;
 	MyUtils::pushStringToList(httpVersion + " " + returnCode + 
-		((returnCodeDescription.compare("") == 0) ? ("\r\n") : (" " + returnCodeDescription+"\r\n")), chars);
+		((returnCodeDescription.compare("") == 0) ? ("\r\n") : (" " + returnCodeDescription + "\r\n")), chars);
 	{
 		auto itor = attributes.begin();
 		for (; itor != attributes.end(); itor++)
@@ -150,4 +151,18 @@ string HttpResponse::toString()
 	cout << nn1 << endl;
 	return nn1;
 
+}
+
+bool HttpResponse::getPair(string key, SSP* _out)
+{
+	auto itor = attributes.begin();
+	for (; itor != attributes.end(); itor++)
+	{
+		if (itor->first.compare(key) == 0) {
+			_out->first = itor->first;
+			_out->second = itor->second;
+			return true;
+		}
+	}
+	return false;
 }

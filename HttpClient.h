@@ -31,12 +31,15 @@ private:
 
 	string sPort;
 public:
+	unsigned long long mbs = 0;         //mbs(Max Body Size)Http体最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
 
-	string Send(string method, string url, string content);       //发送Http报文，只含有默认属性
+ 	string Send(string method, string url, string content);       //发送Http报文，只含有默认属性
 	string Send(string method, string url, map<string, string> extraAttribute, string content); //发送Http报文，可以自定义属性
 
-	string ReceiveHead();             //读取响应头
-	string ReadBodyToMemory();        //读取响应体到内存中
+	string ReadContentLengthToMemory(unsigned long long);//读取Content-Length长度到内存中，受控于mbs
+	string ReadNextLineToMemory();     //读取下一行
+	string ReceiveHead();              //读取响应头
+	string ReadBodyToMemory();         //读取响应体到内存中
 	void ReadBodyToFile(string filePath); //读取响应体到文件中
 	int StartUp(string domain, int port);                    //以域名HttpClient开机
 	int StartUpIP(string ip, int port);                      //以IP HttpClient开机
