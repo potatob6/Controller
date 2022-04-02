@@ -147,7 +147,7 @@ string HttpClient::ReceiveHead()
 {
 	current_stream_length = 0;
 	unsigned char EOH = 0;     //end of head
-	list<char> l;
+	string l;
 	//+     ： %2B
 	//space ： %20
 	///     ： %2F
@@ -184,18 +184,7 @@ string HttpClient::ReceiveHead()
 		//printf("RnRn: %ud\n", getRnRn);
 		l.push_back(nb);
 	}
-	auto itor = l.begin();
-	char* rb = new char[l.size() + 1];
-	rb[l.size()] = 0;
-	int i = 0;
-	for (; itor != l.end(); itor++)
-	{
-		rb[i] = (*itor);
-		i++;
-	}
-	string n(rb);
-	delete[] rb;
-	return string(n);
+	return l;
 
 }
 
@@ -236,7 +225,7 @@ string HttpClient::ReadNextLineToMemory()
 {
 	bool escapingMode = false;
 	unsigned char Rn = 0;
-	list<char> ls;
+	string ls;
 	char nextByte = getNextByte();
 	while (Rn != 2)
 	{
@@ -269,24 +258,25 @@ string HttpClient::ReadNextLineToMemory()
 
 		ls.push_back(nextByte);
 	}
-	char* buf = new char[ls.size() + 1];
-	buf[ls.size()] = 0;
-	auto itor = ls.begin();
-	unsigned int i = 0;
-	for (; itor != ls.end(); itor++)
-	{
-		buf[i] = *itor;
-		i++;
-	}
-	delete[] buf;
-	string nn(buf);
-	return buf;
+	return ls;
 }
 
 string HttpClient::ReadContentLengthToMemory(unsigned long long len)
 {
-	//TODO
-	return string();
+	string ll;
+	list<char> testl;
+	unsigned long long it = 0;
+	for (it = 0; it < len; it++)
+	{
+		char nb = getNextByte();
+		if (nb == 0x0d)
+		{
+			printf(u8"遇到0d");
+		}
+		ll.push_back(nb);
+		testl.push_back(nb);
+	}
+	return ll;
 }
 
 int HttpClient::StartUpIP(string ip, int port)
@@ -340,32 +330,47 @@ int HttpClient::StartUpIP(string ip, int port)
 	delete[] wip;
 	this->server = server;
 	//连接成功
-	string sendHeadBuf = Send("GET", "/notice_war_exploded/", "");
+	string sendHeadBuf = Send("GET", "/A.jpg", "");
 	send(server, sendHeadBuf.c_str(), sendHeadBuf.size(), 0);
 
-	string recvHead = ReceiveHead();
-	HttpResponse response = HttpResponse::parseResponse(recvHead);
-	//TODO 解析头部信息
-	SSP clh;
-	bool finded = response.getPair("Content-Length", &clh);
-	if (finded)
-	{
-		//有Content-Length
-		
-	}
-	else
-	{
-		//无Content-Length
-		SSP ckh;
-		bool findChunked = response.getPair("Transfer-Encoding", &ckh);
-		if (!findChunked)
-		{
-			//无Transfer-Encoding，不合规的头部，丢弃
+	bool exit = false;
 
+	while (!exit)
+	{
+		string recvHead = ReceiveHead();
+		HttpResponse response = HttpResponse::parseResponse(recvHead);
+		//TODO 解析头部信息
+		SSP clh;
+		bool finded = response.getPair("Content-Length", &clh);
+		if (finded)
+		{
+			//有Content-Length
+			//测试情况下先加载到内存
+			unsigned long long l = atoi(clh.second.c_str());
+			char* cs = new char[l];
+			string n = ReadContentLengthToMemory(l);
+
+			//以下是测试，具体问题还有会读取两次头部
+			FILE* fp;
+			fopen_s(&fp, "D:\\share\\A.jpg", "w");
+			size_t st = fwrite(n.c_str(), 1, n.size(), fp);
+			fclose(fp);
+			cout << u8"写入文件D:\\share\\A.jpg成功，字节数:" << st << endl;
 		}
 		else
 		{
-			//有Transfer-Encoding
+			//无Content-Length
+			SSP ckh;
+			bool findChunked = response.getPair("Transfer-Encoding", &ckh);
+			if (!findChunked)
+			{
+				//无Transfer-Encoding，不合规的头部，丢弃
+
+			}
+			else
+			{
+				//有Transfer-Encoding
+			}
 		}
 	}
 	return 0;
