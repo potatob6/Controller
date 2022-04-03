@@ -353,21 +353,26 @@ int HttpClient::StartUpIP(string ip, int port)
 		string recvHead = ReceiveHead();
 		HttpResponse response = HttpResponse::parseResponse(recvHead);
 		//TODO 解析头部信息
-		SSP clh;
+		SSP clh, rspm;
 		bool finded = response.getPair("Content-Length", &clh);
+		bool cmdm = response.getPair("Response-Mode", &rspm);
 		if (finded)
 		{
 			//有Content-Length
 			//测试情况下先加载到内存
 			ULL l = atoi(clh.second.c_str());
-			char* cs = new char[l];
+			char* cs = new char[l+1];
+			cs[l] = 0;
 			ReadContentLengthToMemory(l, cs);
-
+			cout << u8"来自服务器的来信" << endl;
+			if (cmdm && rspm.second.compare("command") == 0) {
+				cout << u8"命令模式:" << cs << endl;
+			}
 			//以下是测试，具体问题还有会读取两次头部
-			FILE* fp;
-			fopen_s(&fp, "D:\\share\\a.txt", "wb");
-			size_t st = fwrite(cs, 1, l, fp);
-			fclose(fp);
+			//FILE* fp;
+			//fopen_s(&fp, "D:\\share\\a.txt", "wb");
+			//size_t st = fwrite(cs, 1, l, fp);
+			//fclose(fp);
 			delete[] cs;
 		}
 		else
