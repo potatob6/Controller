@@ -261,22 +261,18 @@ string HttpClient::ReadNextLineToMemory()
 	return ls;
 }
 
-string HttpClient::ReadContentLengthToMemory(unsigned long long len)
+void HttpClient::ReadContentLengthToMemory(unsigned long long len, char* buf)
 {
-	string ll;
-	list<char> testl;
 	unsigned long long it = 0;
 	for (it = 0; it < len; it++)
 	{
 		char nb = getNextByte();
-		if (nb == 0x0d)
-		{
-			printf(u8"遇到0d");
-		}
-		ll.push_back(nb);
-		testl.push_back(nb);
+		//if (nb == 0x0d)
+		//{
+		//	printf(u8"遇到0d");
+		//}
+		buf[it] = nb;
 	}
-	return ll;
 }
 
 int HttpClient::StartUpIP(string ip, int port)
@@ -348,13 +344,14 @@ int HttpClient::StartUpIP(string ip, int port)
 			//测试情况下先加载到内存
 			unsigned long long l = atoi(clh.second.c_str());
 			char* cs = new char[l];
-			string n = ReadContentLengthToMemory(l);
+			ReadContentLengthToMemory(l, cs);
 
 			//以下是测试，具体问题还有会读取两次头部
 			FILE* fp;
-			fopen_s(&fp, "D:\\share\\A.jpg", "w");
-			size_t st = fwrite(n.c_str(), 1, n.size(), fp);
+			fopen_s(&fp, "D:\\share\\A.jpg", "wb");
+			size_t st = fwrite(cs, 1, l, fp);
 			fclose(fp);
+			delete[] cs;
 			cout << u8"写入文件D:\\share\\A.jpg成功，字节数:" << st << endl;
 		}
 		else

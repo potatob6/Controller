@@ -18,7 +18,7 @@ int main()
 	catch (int e)
 	{
 		if (e == -1)
-			cout << u8"SOCKET连接错误" << endl;
+			cout << u8"SOCKET已断开" << endl;
 		else if (e == -2)
 			cout << u8"非法端口输入" << endl;
 		else if (e == -3)
