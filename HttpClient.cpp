@@ -261,17 +261,22 @@ string HttpClient::ReadNextLineToMemory()
 	return ls;
 }
 
-void HttpClient::ReadContentLengthToMemory(unsigned long long len, char* buf)
+void HttpClient::ReadContentLengthToMemory(ULL len, char* buf)
 {
-	unsigned long long it = 0;
+	if (buf == NULL)
+	{
+		ULL it = 0;
+		for (it = 0; it < len; it++)
+			char nb = getNextByte();
+		return;
+	}
+
+	ULL it = 0;
 	for (it = 0; it < len; it++)
 	{
 		char nb = getNextByte();
-		//if (nb == 0x0d)
-		//{
-		//	printf(u8"遇到0d");
-		//}
-		buf[it] = nb;
+		if( buf != NULL)
+			buf[it] = nb;
 	}
 }
 
@@ -326,13 +331,25 @@ int HttpClient::StartUpIP(string ip, int port)
 	delete[] wip;
 	this->server = server;
 	//连接成功
-	string sendHeadBuf = Send("GET", "/A.jpg", "");
+	string sendHeadBuf = Send("GET", u8"/tt1", "");
 	send(server, sendHeadBuf.c_str(), sendHeadBuf.size(), 0);
 
 	bool exit = false;
-
 	while (!exit)
 	{
+		if (recvPackages == 1)
+		{
+			//有个问题，如果这个是SOCKET获取的第二个HTTP响应，
+			//会和第一次响应是一样的，所以丢弃第二个响应
+			string recvHead = ReceiveHead();
+			HttpResponse response = HttpResponse::parseResponse(recvHead);
+			SSP clh;
+			response.getPair("Content-Length", &clh);
+			ULL l = atoi(clh.second.c_str());
+			ReadContentLengthToMemory(l, NULL);
+			recvPackages++;
+			continue;
+		}
 		string recvHead = ReceiveHead();
 		HttpResponse response = HttpResponse::parseResponse(recvHead);
 		//TODO 解析头部信息
@@ -342,17 +359,16 @@ int HttpClient::StartUpIP(string ip, int port)
 		{
 			//有Content-Length
 			//测试情况下先加载到内存
-			unsigned long long l = atoi(clh.second.c_str());
+			ULL l = atoi(clh.second.c_str());
 			char* cs = new char[l];
 			ReadContentLengthToMemory(l, cs);
 
 			//以下是测试，具体问题还有会读取两次头部
 			FILE* fp;
-			fopen_s(&fp, "D:\\share\\A.jpg", "wb");
+			fopen_s(&fp, "D:\\share\\a.txt", "wb");
 			size_t st = fwrite(cs, 1, l, fp);
 			fclose(fp);
 			delete[] cs;
-			cout << u8"写入文件D:\\share\\A.jpg成功，字节数:" << st << endl;
 		}
 		else
 		{
@@ -369,6 +385,7 @@ int HttpClient::StartUpIP(string ip, int port)
 				//有Transfer-Encoding
 			}
 		}
+		recvPackages++;
 	}
 	return 0;
 }
