@@ -151,7 +151,11 @@ resend:
 		for (int i = 0; i < 3; i++)
 		{
 			try {
+#ifdef DEBUG_MODE
+				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
+#endif
 				getConnection();
+				cout << u8"重连成功" << endl;
 				cstatus = true;
 				break;
 			}
@@ -204,14 +208,20 @@ resend:
 	int results = send(server, httpRequest.toString().c_str(), len, 0);
 	if (results == SOCKET_ERROR)
 	{
+#ifdef DEBUG_MODE
 		cout << u8"Send失败，尝试三次建立新连接发送" << endl;
+#endif
 
 		//尝试三次建立新的TCP连接
 		bool cstatus = false;
 		for (int i = 0; i < 3; i++)
 		{
 			try {
+#ifdef DEBUG_MODE
+				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
+#endif
 				getConnection();
+				cout << u8"重连成功" << endl;
 				cstatus = true;
 				break;
 			}

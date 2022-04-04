@@ -30,6 +30,6 @@ int main()
 		else if (e == -6)
 			cout << u8"发送失败" << endl;
 	}
-
+	exit(0);
 	return 0;
 }
