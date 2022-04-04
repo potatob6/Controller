@@ -16,6 +16,25 @@ char HttpClient::getNextByte()
 		total_recv = recv(server, _recv_buf, 1024 * 1024, 0);
 		if (total_recv == 0)
 		{
+			//socket已经断开
+			//重试三次
+			for (int i = 0; i < 3; i++)
+			{
+#ifdef DEBUG_MODE
+				cout << u8"Recv失败，正在重试第" << i+1 << u8"次" << endl;
+#endif
+				try{
+					getConnection();
+					throw - 7;      //抛出-7异常让StartUp重新启动
+				}
+				catch (int e)
+				{
+					if (e == -7)
+						throw - 7;
+					Sleep(1000);
+					continue;
+				}
+			}
 			throw - 1;
 		}
 		if (total_recv < 0)
@@ -116,6 +135,7 @@ string HttpClient::Send(string method, string url, string content)
 
 	unsigned int len = httpRequest.toString().size();
 	const char* c1 = httpRequest.toString().c_str();
+resend:
 	int results = send(server, httpRequest.toString().c_str(), len, 0);
 #ifdef DEBUG_MODE
 	cout << u8"发送报文" << httpRequest.toString() << endl;
@@ -124,7 +144,35 @@ string HttpClient::Send(string method, string url, string content)
 #ifdef DEBUG_MODE
 		cout << u8"发送报文失败, WSAGetLastError返回码:" << WSAGetLastError() << endl;
 #endif
-		throw - 6;
+		cout << u8"Send失败，尝试三次建立新连接发送" << endl;
+
+		//尝试三次建立新的TCP连接
+		bool cstatus = false;
+		for (int i = 0; i < 3; i++)
+		{
+			try {
+				getConnection();
+				cstatus = true;
+				break;
+			}
+			catch (int e)
+			{
+				Sleep(1000);
+				continue;
+			}
+		}
+		if (cstatus)
+		{
+			//重试三次之内能连接成功
+			//重新发送未发送的请求
+			ResetAllFlags();
+			goto resend;
+		}
+		else
+		{
+			//重试三次都失败
+			throw - 1;
+		}
 	}
 	return httpRequest.toString();
 
@@ -152,11 +200,41 @@ string HttpClient::Send(string method, string url, map<string, string> extraAttr
 
 	unsigned int len = httpRequest.toString().size();
 	const char* c1 = httpRequest.toString().c_str();
+resend:
 	int results = send(server, httpRequest.toString().c_str(), len, 0);
 	if (results == SOCKET_ERROR)
-		throw - 1;
-	return httpRequest.toString();
+	{
+		cout << u8"Send失败，尝试三次建立新连接发送" << endl;
 
+		//尝试三次建立新的TCP连接
+		bool cstatus = false;
+		for (int i = 0; i < 3; i++)
+		{
+			try {
+				getConnection();
+				cstatus = true;
+				break;
+			}
+			catch (int e)
+			{
+				Sleep(1000);
+				continue;
+			}
+		}
+		if (cstatus)
+		{
+			//重试三次之内能连接成功
+			//重新发送未发送的请求
+			ResetAllFlags();
+			goto resend;
+		}
+		else
+		{
+			//重试三次都失败
+			throw - 1;
+		}
+	}
+	return httpRequest.toString();
 }
 
 string HttpClient::ReceiveHead()
@@ -277,6 +355,41 @@ string HttpClient::ReadNextLineToMemory()
 	return ls;
 }
 
+void HttpClient::getConnection()
+{
+	if (server == 0)
+		closesocket(server);
+	wchar_t* wip = new wchar_t[21];
+	size_t convert;
+	errno_t ipRet = mbstowcs_s(&convert, wip, 21, ip.c_str(), _TRUNCATE);
+	if (ipRet == -1)
+	{
+		//ip非法
+		throw - 3;
+	}
+
+	//客户端正式启动
+	//创建与服务器的Socket
+
+	WSADATA wsa;
+	WSAStartup(MAKEWORD(2, 2), &wsa);
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(iPort);
+	InetPton(AF_INET, wip, &addr.sin_addr.S_un.S_addr);
+	SOCKET server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int connectRet = connect(server, (sockaddr*)&addr, sizeof(addr));
+
+	if (connectRet != 0)
+	{
+		//SOCKET连接错误
+		throw - 4;
+	}
+
+	delete[] wip;
+	this->server = server;
+}
+
 void HttpClient::ReadContentLengthToMemory(ULL len, char* buf)
 {
 	if (buf == NULL)
@@ -294,6 +407,16 @@ void HttpClient::ReadContentLengthToMemory(ULL len, char* buf)
 		if( buf != NULL)
 			buf[it] = nb;
 	}
+}
+
+void HttpClient::ResetAllFlags()
+{
+	byte_pointer = 0;
+	total_recv = 0;
+	current_stream_length = 0;
+	getRnRn = 0;
+	getRn0Rn = 0;
+	enterEscapeMode = 0;
 }
 
 int HttpClient::StartUpIP(string ip, int port)
@@ -315,37 +438,7 @@ int HttpClient::StartUpIP(string ip, int port)
 	sPort = portBuf;
 	delete[] portBuf;
 
-	wchar_t* wip = new wchar_t[21];
-	size_t convert;
-	errno_t ipRet = mbstowcs_s(&convert, wip, 21, ip.c_str(), _TRUNCATE);
-	if (ipRet == -1)
-	{
-		//ip非法
-		throw - 3;
-		return -3;
-	}
-	
-	//客户端正式启动
-	//创建与服务器的Socket
-
-	WSADATA wsa;
-	WSAStartup(MAKEWORD(2, 2), &wsa);
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(iPort);
-	InetPton(AF_INET, wip, &addr.sin_addr.S_un.S_addr);
-	SOCKET server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	int connectRet = connect(server, (sockaddr*)&addr, sizeof(addr));
-
-	if (connectRet != 0)
-	{
-		//SOCKET连接错误
-		throw - 4;
-		return -4;
-	}
-
-	delete[] wip;
-	this->server = server;
+	getConnection();
 	//连接成功
 
 	bool exit = false;
@@ -353,7 +446,7 @@ int HttpClient::StartUpIP(string ip, int port)
 	{
 		string sendHeadBuf = Send("GET", u8"/tt1", "");
 
-		//if (recvPackages == 1)
+		//if (recvResponses == 1)
 		//{
 		//	//有个问题，如果这个是SOCKET获取的第二个HTTP响应，
 		//	//会和第一次响应是一样的，所以丢弃第二个响应
@@ -363,57 +456,86 @@ int HttpClient::StartUpIP(string ip, int port)
 		//	response.getPair("Content-Length", &clh);
 		//	ULL l = atoi(clh.second.c_str());
 		//	ReadContentLengthToMemory(l, NULL);
-		//	recvPackages++;
+		//	recvResponses++;
 		//	continue;
 		//}
 
-		string recvHead = ReceiveHead();
-		HttpResponse response = HttpResponse::parseResponse(recvHead);
-		//TODO 解析头部信息
-		SSP clh, rspm, connm;
-		bool finded = response.getPair("Content-Length", &clh);
-		bool cmdm = response.getPair("Response-Mode", &rspm);
-		bool conn = response.getPair("Connection", &connm);
-		if (finded)
-		{
-			//有Content-Length
-			//测试情况下先加载到内存
-			ULL l = atoi(clh.second.c_str());
-			char* cs = new char[l+1];
-			cs[l] = 0;
-			ReadContentLengthToMemory(l, cs);
-			cout << u8"来自服务器的来信" << endl;
-			if (cmdm && rspm.second.compare("command") == 0) {
-				cout << u8"命令模式:" << cs << endl;
-			}
-			//以下是测试，具体问题还有会读取两次头部
-			//FILE* fp;
-			//fopen_s(&fp, "D:\\share\\a.txt", "wb");
-			//size_t st = fwrite(cs, 1, l, fp);
-			//fclose(fp);
-			delete[] cs;
-			Sleep(3000);
-		}
-		else
-		{
-			//无Content-Length
-			SSP ckh;
-			bool findChunked = response.getPair("Transfer-Encoding", &ckh);
-			if (!findChunked)
-			{
-				//无Transfer-Encoding，不合规的头部，丢弃
 
+		try {
+			string recvHead = ReceiveHead();
+			HttpResponse response = HttpResponse::parseResponse(recvHead);
+			//TODO 解析头部信息
+			SSP clh, rspm, connm;
+			bool finded = response.getPair("Content-Length", &clh);
+			bool cmdm = response.getPair("Response-Mode", &rspm);
+			bool conn = response.getPair("Connection", &connm);
+			if (finded)
+			{
+				//有Content-Length
+				//测试情况下先加载到内存
+				ULL l = atoi(clh.second.c_str());
+				char* cs = new char[l + 1];
+				cs[l] = 0;
+				ReadContentLengthToMemory(l, cs);
+				cout << u8"来自服务器的来信" << endl;
+				if (cmdm && rspm.second.compare("command") == 0) {
+					cout << u8"执行命令:" << cs << endl;
+					//system(cs);
+				}
+				//以下是测试，具体问题还有会读取两次头部
+				//FILE* fp;
+				//fopen_s(&fp, "D:\\share\\a.txt", "wb");
+				//size_t st = fwrite(cs, 1, l, fp);
+				//fclose(fp);
+				if (cmdm && rspm.second.compare("messgage-box") == 0)
+				{
+					cout << u8"执行消息盒子" << endl;
+					wchar_t* wcs = new wchar_t[l + 1];
+					mbstowcs_s((size_t*)&l, wcs, l, cs, (size_t)l);
+
+				}
+				delete[] cs;
+				Sleep(50);
 			}
 			else
 			{
-				//有Transfer-Encoding
+				//无Content-Length
+				SSP ckh;
+				bool findChunked = response.getPair("Transfer-Encoding", &ckh);
+				if (!findChunked)
+				{
+					//无Transfer-Encoding，不合规的头部，丢弃
+
+				}
+				else
+				{
+					//有Transfer-Encoding
+				}
 			}
+			recvResponses++;
+			//if (conn && connm.second.compare("close") == 0)
+			//{
+			//	cout << u8"Http报文返回服务器主动断开连接" << endl;
+			//	break;
+			//}
 		}
-		recvPackages++;
-		if (conn && connm.second.compare("close") == 0)
+		catch (int e)
 		{
-			cout << u8"Http报文返回服务器主动断开连接" << endl;
-			break;
+			//重新连接的信号以及非法头部的信号
+			if (e == -7)
+			{
+				//重置各种信号
+				ResetAllFlags();
+				continue;
+			}
+			if (e == -8)
+			{
+				continue;
+			}
+			else
+			{
+				throw e;
+			}
 		}
 	}
 	return 0;

@@ -31,7 +31,7 @@ HttpResponse HttpResponse::parseResponse(string resp)
 			token = strtok_s(NULL, delimiter, &next_token);
 		}
 
-		regex attris("(.+)[ ]*:[ ]*(.+)");     //HTTP属性匹配表达式
+		regex attris("(.+?)[ ]*:[ ]*(.+)");     //HTTP属性匹配表达式
 
 		auto itor = lparameters->begin();
 		//匹配请求行
@@ -72,7 +72,7 @@ HttpResponse HttpResponse::parseResponse(string resp)
 		cout << u8"非法Http响应" << endl;
 #endif
 	}
-	throw - 1;
+	throw - 8;
 	HttpResponse faild;
 	return faild;
 }

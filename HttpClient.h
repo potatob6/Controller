@@ -25,13 +25,16 @@ private:
 
 	//read next byte and judge is this stream read end of http head
 	bool judgeRnRn(char nb);
-	SOCKET server;
+
+	void ResetAllFlags();
+
+	SOCKET server = 0;
 	string domain;
 	string ip;
 	int iPort;
 	string sPort;
-
-	UI recvPackages = 0;
+	void getConnection();
+	UI recvResponses = 0;
 public:
 	ULL mmbs = 0;         //mmbs(Memory Max Body Size)Http体接收到内存最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
 	ULL fmbs = 0;         //fmbs(File Max Body Size)Http体接收到文件的最大长度，同上

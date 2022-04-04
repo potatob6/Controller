@@ -18,7 +18,7 @@ int main()
 	catch (int e)
 	{
 		if (e == -1)
-			cout << u8"服务器已主动断开" << endl;
+			cout << u8"服务器已关闭" << endl;
 		else if (e == -2)
 			cout << u8"非法端口输入" << endl;
 		else if (e == -3)
