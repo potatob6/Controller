@@ -14,9 +14,18 @@ char HttpClient::getNextByte()
 	{
 		//read from socket
 		total_recv = recv(server, _recv_buf, 1024 * 1024, 0);
-		if (total_recv <= 0)
+		if (total_recv == 0)
 		{
 			throw - 1;
+		}
+		if (total_recv < 0)
+		{
+#ifdef DEBUG_MODE
+			int RET = WSAGetLastError();
+			cout << u8"total_recv返回码" << total_recv << endl;
+			cout << u8"WSAGetLastError返回码" << RET << endl;
+#endif
+			throw - 5;
 		}
 		_recv_buf[total_recv] = 0;
 		byte_pointer = 0;
@@ -108,8 +117,15 @@ string HttpClient::Send(string method, string url, string content)
 	unsigned int len = httpRequest.toString().size();
 	const char* c1 = httpRequest.toString().c_str();
 	int results = send(server, httpRequest.toString().c_str(), len, 0);
-	if (results == SOCKET_ERROR)
-		throw - 1;
+#ifdef DEBUG_MODE
+	cout << u8"发送报文" << httpRequest.toString() << endl;
+#endif
+	if (results == SOCKET_ERROR) {
+#ifdef DEBUG_MODE
+		cout << u8"发送报文失败, WSAGetLastError返回码:" << WSAGetLastError() << endl;
+#endif
+		throw - 6;
+	}
 	return httpRequest.toString();
 
 }
@@ -331,31 +347,33 @@ int HttpClient::StartUpIP(string ip, int port)
 	delete[] wip;
 	this->server = server;
 	//连接成功
-	string sendHeadBuf = Send("GET", u8"/tt1", "");
-	send(server, sendHeadBuf.c_str(), sendHeadBuf.size(), 0);
 
 	bool exit = false;
 	while (!exit)
 	{
-		if (recvPackages == 1)
-		{
-			//有个问题，如果这个是SOCKET获取的第二个HTTP响应，
-			//会和第一次响应是一样的，所以丢弃第二个响应
-			string recvHead = ReceiveHead();
-			HttpResponse response = HttpResponse::parseResponse(recvHead);
-			SSP clh;
-			response.getPair("Content-Length", &clh);
-			ULL l = atoi(clh.second.c_str());
-			ReadContentLengthToMemory(l, NULL);
-			recvPackages++;
-			continue;
-		}
+		string sendHeadBuf = Send("GET", u8"/tt1", "");
+
+		//if (recvPackages == 1)
+		//{
+		//	//有个问题，如果这个是SOCKET获取的第二个HTTP响应，
+		//	//会和第一次响应是一样的，所以丢弃第二个响应
+		//	string recvHead = ReceiveHead();
+		//	HttpResponse response = HttpResponse::parseResponse(recvHead);
+		//	SSP clh;
+		//	response.getPair("Content-Length", &clh);
+		//	ULL l = atoi(clh.second.c_str());
+		//	ReadContentLengthToMemory(l, NULL);
+		//	recvPackages++;
+		//	continue;
+		//}
+
 		string recvHead = ReceiveHead();
 		HttpResponse response = HttpResponse::parseResponse(recvHead);
 		//TODO 解析头部信息
-		SSP clh, rspm;
+		SSP clh, rspm, connm;
 		bool finded = response.getPair("Content-Length", &clh);
 		bool cmdm = response.getPair("Response-Mode", &rspm);
+		bool conn = response.getPair("Connection", &connm);
 		if (finded)
 		{
 			//有Content-Length
@@ -374,6 +392,7 @@ int HttpClient::StartUpIP(string ip, int port)
 			//size_t st = fwrite(cs, 1, l, fp);
 			//fclose(fp);
 			delete[] cs;
+			Sleep(3000);
 		}
 		else
 		{
@@ -391,6 +410,11 @@ int HttpClient::StartUpIP(string ip, int port)
 			}
 		}
 		recvPackages++;
+		if (conn && connm.second.compare("close") == 0)
+		{
+			cout << u8"Http报文返回服务器主动断开连接" << endl;
+			break;
+		}
 	}
 	return 0;
 }

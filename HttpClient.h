@@ -33,12 +33,13 @@ private:
 
 	UI recvPackages = 0;
 public:
-	ULL mbs = 0;         //mbs(Max Body Size)Http体最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
+	ULL mmbs = 0;         //mmbs(Memory Max Body Size)Http体接收到内存最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
+	ULL fmbs = 0;         //fmbs(File Max Body Size)Http体接收到文件的最大长度，同上
 
  	string Send(string method, string url, string content);       //发送Http报文，只含有默认属性
 	string Send(string method, string url, map<string, string> extraAttribute, string content); //发送Http报文，可以自定义属性
 
-	void ReadContentLengthToMemory(ULL, char*);//读取Content-Length长度到内存中，受控于mbs
+	void ReadContentLengthToMemory(ULL, char*);//读取Content-Length长度到内存中，受控于mmbs
 	string ReadNextLineToMemory();     //读取下一行
 	string ReceiveHead();              //读取响应头
 	string ReadBodyToMemory();         //读取响应体到内存中

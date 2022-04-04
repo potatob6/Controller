@@ -18,15 +18,17 @@ int main()
 	catch (int e)
 	{
 		if (e == -1)
-			cout << u8"SOCKET已断开" << endl;
+			cout << u8"服务器已主动断开" << endl;
 		else if (e == -2)
 			cout << u8"非法端口输入" << endl;
 		else if (e == -3)
 			cout << u8"IP中含有非法字符" << endl;
 		else if (e == -4)
 			cout << u8"连接错误" << endl;
-		else
-			cout << u8"未知错误" << endl;
+		else if (e == -5)
+			cout << u8"SOCKET异常" << endl;
+		else if (e == -6)
+			cout << u8"发送失败" << endl;
 	}
 
 	return 0;
