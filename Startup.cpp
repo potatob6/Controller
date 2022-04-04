@@ -9,10 +9,10 @@ using namespace std;
 int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
-	HttpClient httpClient;
-	try 
+	try
 	{
 		//客户端启动
+		HttpClient httpClient;
 		httpClient.StartUpIP("127.0.0.1", 8080);
 	}
 	catch (int e)
@@ -30,6 +30,5 @@ int main()
 		else if (e == -6)
 			cout << u8"发送失败" << endl;
 	}
-	exit(0);
 	return 0;
 }

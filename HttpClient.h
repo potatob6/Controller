@@ -13,7 +13,7 @@ class HttpClient {
 private:
 	char* _recv_buf;
 	unsigned long byte_pointer = 0;
-	unsigned long total_recv = 0;
+	long total_recv = 0;
 	unsigned long current_stream_length = 0;
 	unsigned char getRnRn = 0;            // end of head bytes \r \n \r \n
 	unsigned char getRn0Rn = 0;           // end of chuncked   \r \n 0 \r \n

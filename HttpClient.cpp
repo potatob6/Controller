@@ -18,20 +18,21 @@ char HttpClient::getNextByte()
 		{
 			//socket已经断开
 			//重试三次
-			for (int i = 0; i < 3; i++)
+			for (int i = 0; i < RETRY_TIMES; i++)
 			{
 #ifdef DEBUG_MODE
 				cout << u8"Recv失败，正在重试第" << i+1 << u8"次" << endl;
 #endif
 				try{
 					getConnection();
+					ResetAllFlags();
 					throw - 7;      //抛出-7异常让StartUp重新启动
 				}
 				catch (int e)
 				{
 					if (e == -7)
 						throw - 7;
-					Sleep(1000);
+					Sleep(HTTPCLIENT_RETRY_DELAY);
 					continue;
 				}
 			}
@@ -44,6 +45,26 @@ char HttpClient::getNextByte()
 			cout << u8"total_recv返回码" << total_recv << endl;
 			cout << u8"WSAGetLastError返回码" << RET << endl;
 #endif
+			//socket已经断开
+			//重试三次
+			for (int i = 0; i < RETRY_TIMES; i++)
+			{
+#ifdef DEBUG_MODE
+				cout << u8"Recv失败，正在重试第" << i + 1 << u8"次" << endl;
+#endif
+				try {
+					getConnection();
+					ResetAllFlags();
+					throw - 7;      //抛出-7异常让StartUp重新启动
+				}
+				catch (int e)
+				{
+					if (e == -7)
+						throw - 7;
+					Sleep(HTTPCLIENT_RETRY_DELAY);
+					continue;
+				}
+			}
 			throw - 5;
 		}
 		_recv_buf[total_recv] = 0;
@@ -140,43 +161,32 @@ resend:
 #ifdef DEBUG_MODE
 	cout << u8"发送报文" << httpRequest.toString() << endl;
 #endif
-	if (results == SOCKET_ERROR) {
+	if (results == SOCKET_ERROR)
+	{
 #ifdef DEBUG_MODE
-		cout << u8"发送报文失败, WSAGetLastError返回码:" << WSAGetLastError() << endl;
+		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
 #endif
-		cout << u8"Send失败，尝试三次建立新连接发送" << endl;
 
 		//尝试三次建立新的TCP连接
-		bool cstatus = false;
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < RETRY_TIMES; i++)
 		{
 			try {
 #ifdef DEBUG_MODE
 				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
 #endif
 				getConnection();
+				ResetAllFlags();
 				cout << u8"重连成功" << endl;
-				cstatus = true;
+				goto resend;
 				break;
 			}
 			catch (int e)
 			{
-				Sleep(1000);
+				Sleep(HTTPCLIENT_RETRY_DELAY);
 				continue;
 			}
 		}
-		if (cstatus)
-		{
-			//重试三次之内能连接成功
-			//重新发送未发送的请求
-			ResetAllFlags();
-			goto resend;
-		}
-		else
-		{
-			//重试三次都失败
-			throw - 1;
-		}
+		throw - 1;
 	}
 	return httpRequest.toString();
 
@@ -209,40 +219,29 @@ resend:
 	if (results == SOCKET_ERROR)
 	{
 #ifdef DEBUG_MODE
-		cout << u8"Send失败，尝试三次建立新连接发送" << endl;
+		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
 #endif
 
 		//尝试三次建立新的TCP连接
-		bool cstatus = false;
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < RETRY_TIMES; i++)
 		{
 			try {
 #ifdef DEBUG_MODE
 				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
 #endif
 				getConnection();
+				ResetAllFlags();
 				cout << u8"重连成功" << endl;
-				cstatus = true;
+				goto resend;
 				break;
 			}
 			catch (int e)
 			{
-				Sleep(1000);
+				Sleep(HTTPCLIENT_RETRY_DELAY);
 				continue;
 			}
 		}
-		if (cstatus)
-		{
-			//重试三次之内能连接成功
-			//重新发送未发送的请求
-			ResetAllFlags();
-			goto resend;
-		}
-		else
-		{
-			//重试三次都失败
-			throw - 1;
-		}
+		throw - 1;
 	}
 	return httpRequest.toString();
 }
@@ -301,6 +300,7 @@ HttpClient::HttpClient()
 HttpClient::~HttpClient()
 {
 	delete[] _recv_buf;
+	_recv_buf = NULL;
 }
 
 void HttpClient::ReadBodyToFile(string filePath)
@@ -375,6 +375,7 @@ void HttpClient::getConnection()
 	if (ipRet == -1)
 	{
 		//ip非法
+		delete[] wip;
 		throw - 3;
 	}
 
@@ -393,6 +394,7 @@ void HttpClient::getConnection()
 	if (connectRet != 0)
 	{
 		//SOCKET连接错误
+		delete[] wip;
 		throw - 4;
 	}
 
@@ -442,13 +444,21 @@ int HttpClient::StartUpIP(string ip, int port)
 	if (err != 0)
 	{
 		//非法端口
+		delete[] portBuf;
 		throw - 2;
 		return -2;
 	}
 	sPort = portBuf;
 	delete[] portBuf;
 
-	getConnection();
+	try {
+		getConnection();
+	}
+	catch (int e)
+	{
+		throw e;
+		return e;
+	}
 	//连接成功
 
 	bool exit = false;
@@ -486,7 +496,13 @@ int HttpClient::StartUpIP(string ip, int port)
 				ULL l = atoi(clh.second.c_str());
 				char* cs = new char[l + 1];
 				cs[l] = 0;
-				ReadContentLengthToMemory(l, cs);
+				try {
+					ReadContentLengthToMemory(l, cs);
+				}
+				catch (int e) {
+					delete[] cs;
+					throw e;
+				}
 				cout << u8"来自服务器的来信" << endl;
 				if (cmdm && rspm.second.compare("command") == 0) {
 					cout << u8"执行命令:" << cs << endl;
@@ -502,7 +518,7 @@ int HttpClient::StartUpIP(string ip, int port)
 					cout << u8"执行消息盒子" << endl;
 					wchar_t* wcs = new wchar_t[l + 1];
 					mbstowcs_s((size_t*)&l, wcs, l, cs, (size_t)l);
-
+					delete[] wcs;
 				}
 				delete[] cs;
 				Sleep(50);
