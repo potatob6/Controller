@@ -25,7 +25,6 @@ char HttpClient::getNextByte()
 #endif
 				try{
 					getConnection();
-					ResetAllFlags();
 					throw - 7;      //抛出-7异常让StartUp重新启动
 				}
 				catch (int e)
@@ -54,7 +53,6 @@ char HttpClient::getNextByte()
 #endif
 				try {
 					getConnection();
-					ResetAllFlags();
 					throw - 7;      //抛出-7异常让StartUp重新启动
 				}
 				catch (int e)
@@ -67,7 +65,9 @@ char HttpClient::getNextByte()
 			}
 			throw - 5;
 		}
-		_recv_buf[total_recv] = 0;
+
+		if(total_recv>=0)
+			_recv_buf[total_recv] = 0;
 		byte_pointer = 0;
 	}
 	char _temp = _recv_buf[byte_pointer];
@@ -157,7 +157,7 @@ string HttpClient::Send(string method, string url, string content)
 	unsigned int len = httpRequest.toString().size();
 	const char* c1 = httpRequest.toString().c_str();
 resend:
-	int results = send(server, httpRequest.toString().c_str(), len, 0);
+	LL results = send(server, httpRequest.toString().c_str(), len, 0);
 #ifdef DEBUG_MODE
 	cout << u8"发送报文" << httpRequest.toString() << endl;
 #endif
@@ -175,7 +175,6 @@ resend:
 				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
 #endif
 				getConnection();
-				ResetAllFlags();
 				cout << u8"重连成功" << endl;
 				goto resend;
 				break;
@@ -389,6 +388,11 @@ void HttpClient::getConnection()
 	addr.sin_port = htons(iPort);
 	InetPton(AF_INET, wip, &addr.sin_addr.S_un.S_addr);
 	SOCKET server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (server == INVALID_SOCKET)
+	{
+		delete[] wip;
+		throw - 8;
+	}
 	int connectRet = connect(server, (sockaddr*)&addr, sizeof(addr));
 
 	if (connectRet != 0)
@@ -400,6 +404,7 @@ void HttpClient::getConnection()
 
 	delete[] wip;
 	this->server = server;
+	ResetAllFlags();
 }
 
 void HttpClient::ReadContentLengthToMemory(ULL len, char* buf)
@@ -465,21 +470,6 @@ int HttpClient::StartUpIP(string ip, int port)
 	while (!exit)
 	{
 		string sendHeadBuf = Send("GET", u8"/tt1", "");
-
-		//if (recvResponses == 1)
-		//{
-		//	//有个问题，如果这个是SOCKET获取的第二个HTTP响应，
-		//	//会和第一次响应是一样的，所以丢弃第二个响应
-		//	string recvHead = ReceiveHead();
-		//	HttpResponse response = HttpResponse::parseResponse(recvHead);
-		//	SSP clh;
-		//	response.getPair("Content-Length", &clh);
-		//	ULL l = atoi(clh.second.c_str());
-		//	ReadContentLengthToMemory(l, NULL);
-		//	recvResponses++;
-		//	continue;
-		//}
-
 
 		try {
 			string recvHead = ReceiveHead();
