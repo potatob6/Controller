@@ -11,6 +11,7 @@
 
 
 using namespace std;
+using namespace pb666;
 class HttpResponse
 {
 public:

@@ -3,12 +3,19 @@
 #include <iostream>
 #include "HttpResponse.h"
 #include "HttpClient.h"
+#include "MyUtils.h"
 #pragma comment(lib, "ws2_32")
 
 using namespace std;
 int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
+	char* t = (char*)"illll";
+	char* buf = new char[20];
+	MyUtils::sha1(t, 5, buf);
+	cout << buf << endl;
+	delete[] buf;
+	return 0;
 	try
 	{
 		//客户端启动

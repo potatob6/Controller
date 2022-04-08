@@ -8,6 +8,7 @@
 #include "HttpResponse.h"
 
 using namespace std;
+using namespace pb666;
 char HttpClient::getNextByte()
 {
 	if (byte_pointer == total_recv)
@@ -469,9 +470,8 @@ int HttpClient::StartUpIP(string ip, int port)
 	bool exit = false;
 	while (!exit)
 	{
-		string sendHeadBuf = Send("GET", u8"/tt1", "");
-
 		try {
+			string sendHeadBuf = Send("GET", u8"/ws", "Hello");
 			string recvHead = ReceiveHead();
 			HttpResponse response = HttpResponse::parseResponse(recvHead);
 			//TODO 解析头部信息
@@ -494,6 +494,7 @@ int HttpClient::StartUpIP(string ip, int port)
 					throw e;
 				}
 				cout << u8"来自服务器的来信" << endl;
+				cout << cs << endl;
 				if (cmdm && rspm.second.compare("command") == 0) {
 					cout << u8"执行命令:" << cs << endl;
 					//system(cs);

@@ -8,7 +8,7 @@
 #include <Windows.h>
 #include "GlobalParameters.h"
 using namespace std;
-
+using namespace pb666;
 class HttpClient {
 private:
 	char* _recv_buf;

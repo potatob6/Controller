@@ -3,6 +3,7 @@
 #include "MyUtils.h"
 
 using namespace std;
+using namespace pb666;
 HttpResponse HttpResponse::parseResponse(string resp)
 {
 	//char* buf = new char[10];
