@@ -159,3 +159,62 @@ void MyUtils::SHA1(char* source, ULL CHARLEN, char out[20])
 	delete[] W;
 	delete[] TEMPSOURCE;
 }
+char MyUtils::BASE64TABLE[64] = {
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+			'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+			'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+			'o', 'p', 'q', 'r', 's', 'T', 'u', 'v',
+			'w', 'x', 'y', 'z', '0', '1', '2', '3',
+			'4', '5', '6', '7', '8', '9', '+', '-'
+};
+errno_t MyUtils::BASE64ENC(UC source[], UI charlen, UC out[], size_t outArySize, size_t& outEncodingSize, size_t& outADDCpos)
+{
+	//计算需要补全的字节
+	UI ADDB = charlen % 3 == 0 ? 0 : 3 - charlen % 3;
+	//计算out缓冲区是否足够大小
+	if (4 * (ADDB + charlen) / 3 > outArySize)
+	{
+		return 1;
+	}
+
+	//处理前面 3 * (charlen / 3)的部分
+	int i, j;
+	i = j = 0;
+	for (; i < charlen; i+=3)
+	{
+		if (j == 8)
+		{
+
+		}
+		out[j] = (source[i] & 0b11111100) >> 2;
+		out[j + 1] = ((source[i] & 0b11) << 4) | ((source[i + 1] & 0b11110000) >> 4);
+		out[j + 2] = ((source[i + 1] & 0b1111) << 2) | ((source[i + 2] & 0b11000000) >> 6);
+		out[j + 3] = ((source[i + 2] & 0b111111));
+		j += 4;
+	}
+	//处理余下补全的三个字节
+	if (ADDB == 1)
+	{
+		UI LASTJBASE = 4 * (ADDB + charlen) / 3 - 4;
+		UC ADDCBASE = charlen - 2;
+		out[LASTJBASE] =     (source[ADDCBASE] & 0b11111100) >> 2;
+		out[LASTJBASE + 1] = ((source[ADDCBASE] & 0b11) << 4) | ((source[ADDCBASE + 1] & 0b11110000) >> 4);
+		out[LASTJBASE + 2] = ((source[ADDCBASE + 1] & 0b1111) << 2);
+		out[LASTJBASE + 3] = 0;
+		outADDCpos = LASTJBASE + 3;
+	}
+	else if(ADDB == 2)
+	{
+		UI LASTJBASE = 4 * (ADDB + charlen) / 3 - 4;
+		UC ADDCBASE = charlen - 1;
+		out[LASTJBASE] = (source[ADDCBASE] & 0b11111100) >> 2;
+		out[LASTJBASE + 1] = ((source[ADDCBASE] & 0b11) << 4);
+		out[LASTJBASE + 2] = 0;
+		out[LASTJBASE + 3] = 0;
+		outADDCpos = LASTJBASE + 2;
+	}
+	outEncodingSize = 4 * (ADDB + charlen) / 3;
+	return 0;
+}

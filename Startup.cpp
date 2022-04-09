@@ -4,20 +4,40 @@
 #include "HttpResponse.h"
 #include "HttpClient.h"
 #include "MyUtils.h"
+#include "GlobalParameters.h"
 #pragma comment(lib, "ws2_32")
 
 using namespace std;
+using namespace pb666;
+
+
 
 int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
-	char* t = (char*)"i love you";
-	char* buf = new char[20];
-	MyUtils::SHA1(t, strlen(t), buf);
+	char* t = (char*)"zsclVTq+juB3I2dETaPNnw==";
+	UC* buf = new UC[20];
+	MyUtils::SHA1(t, strlen(t), (char*)buf);
 	for (int i = 0; i < 20; i++)
 	{
 		printf("%02x", (unsigned char)buf[i]);
 	}
+	cout << endl;
+	UC* base64buf = new UC[20 * 4 / 3 + 3];
+	size_t outSize = 0;
+	size_t outAddcPos = 0;
+	errno_t ret = MyUtils::BASE64ENC(buf, 20, base64buf, 20 * 4 / 3 + 3, outSize, outAddcPos);
+	if (ret == 0)
+	{
+		for (int i = 0; i < outSize; i++)
+		{
+			if (i < outAddcPos)
+				printf("%c", MyUtils::BASE64TABLE[base64buf[i]]);
+			else
+				printf("=");
+		}
+	}
+	delete[] base64buf;
 	delete[] buf;
 	return 0;
 	try

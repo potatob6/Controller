@@ -26,4 +26,6 @@ public:
 	}
 	template<typename T>
 	static inline T RoundShiftLeft(T, UI);
+	static char BASE64TABLE[64];
+	static errno_t BASE64ENC(UC[], UI, UC[], size_t, size_t&, size_t&);
 };

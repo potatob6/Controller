@@ -13,4 +13,6 @@ namespace pb666 {
 	typedef unsigned int UI;
 	typedef long long LL;
 	typedef map<string, string> MSS;
+	typedef unsigned char UC;
+	typedef unsigned int UINT32;
 }
