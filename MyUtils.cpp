@@ -90,25 +90,27 @@ void MyUtils::SHA1(char* source, ULL CHARLEN, char out[20])
 	for (int Mi = 0; Mi < CP_LEN / 64; Mi++)
 	{
 		UI BM = Mi * 64;
-		//TODO
-		for (int i = 0; i < 16; i++)
-		{
-			//小端序转为大端序
-			unsigned char* FIRST = (unsigned char*)(TEMPSOURCE + i * 4 + BM);
-			W[i] = ((UI)*FIRST) << 24 |
-				((UI)*(FIRST+1)) << 16 |
-				((UI)*(FIRST+2)) << 8 |
-				((UI)*(FIRST+3));
-		}
-		for (int i = 16; i < 80; i++)
-			W[i] = MyUtils::RoundShiftLeft<UI>(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16], 1);
 		A = H0;
 		B = H1;
 		C = H2;
 		D = H3;
 		E = H4;
+
 		for (int i = 0; i < 80; i++)
 		{
+			if (i < 16)
+			{
+				//小端序转为大端序
+				unsigned char* FIRST = (unsigned char*)(TEMPSOURCE + i * 4 + BM);
+				W[i] = ((UI)*FIRST) << 24 |
+					((UI) * (FIRST + 1)) << 16 |
+					((UI) * (FIRST + 2)) << 8 |
+					((UI) * (FIRST + 3));
+			}
+			else
+			{
+				W[i] = MyUtils::RoundShiftLeft<UI>(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
+			}
 			UI TEMP = MyUtils::RoundShiftLeft<UI>(A, 5) +
 				pb666::F(i, B, C, D) +
 				E +
