@@ -1,5 +1,5 @@
 #include "MyUtils.h"
-
+#include <iostream>
 using namespace pb666;
 void MyUtils::pushStringToList(string n, list<char>& chars)
 {
@@ -10,22 +10,14 @@ void MyUtils::pushStringToList(string n, list<char>& chars)
 	}
 }
 
-inline void MyUtils::setBit(char* source, 
-	ULL CHARLEN, 
-	ULL POSI)
+template<typename T>
+static T MyUtils::RoundShiftLeft(T c, UI n)
 {
-	//TODO
-}
-
-inline char MyUtils::getBit(char* source, 
-	ULL CHARLEN, 
-	ULL POSI)
-{
-	//TODO
-	UI chars = POSI / 8;
-
+	int TSIZE = sizeof(T);
+	return (c << (n % (TSIZE * 8))) | (c >> (TSIZE * 8 - (n % (TSIZE * 8))));
 }
 namespace pb666 {
+
 	int F(int t, int B, int C, int D)
 	{
 		if (t >= 60)
@@ -49,7 +41,7 @@ namespace pb666 {
 			return 0x5A827999;
 	}
 }
-void MyUtils::sha1(char* source, ULL CHARLEN, char out[20])
+void MyUtils::SHA1(char* source, ULL CHARLEN, char out[20])
 {
 	char* TEMPSOURCE = new char[CHARLEN + 64];
 	for (int i = 0; i < CHARLEN; i++)
@@ -57,8 +49,8 @@ void MyUtils::sha1(char* source, ULL CHARLEN, char out[20])
 		TEMPSOURCE[i] = source[i];
 	}
 
-	unsigned int _k = 52 - (CHARLEN % 64);
-	unsigned int k = _k > 0 ? _k : (_k == 0 ? 64 : 64 + _k);
+	UI _k = 56 - (CHARLEN % 64);
+	UI k = _k > 0 ? _k : (_k == 0 ? 64 : 64 + _k);
 	//补位
 	for (int i = 0; i < k; i++)
 	{
@@ -72,35 +64,44 @@ void MyUtils::sha1(char* source, ULL CHARLEN, char out[20])
 
 
 	//补长度
-	unsigned long long CP_LEN = CHARLEN + k;
-	TEMPSOURCE[CP_LEN] = (CHARLEN * 8) & 0xff;
-	TEMPSOURCE[CP_LEN - 1] = (((UI)CHARLEN * 8) >> 8) & 0xff;
-	TEMPSOURCE[CP_LEN - 2] = (((UI)CHARLEN * 8) >> 16) & 0xff;
-	TEMPSOURCE[CP_LEN - 3] = (((UI)CHARLEN * 8) >> 24) & 0xff;
-	TEMPSOURCE[CP_LEN - 4] = (((UI)CHARLEN * 8) >> 32) & 0xff;
-	TEMPSOURCE[CP_LEN - 5] = (((UI)CHARLEN * 8) >> 40) & 0xff;
-	TEMPSOURCE[CP_LEN - 6] = (((UI)CHARLEN * 8) >> 48) & 0xff;
-	TEMPSOURCE[CP_LEN - 7] = (((UI)CHARLEN * 8) >> 56) & 0xff;
+	ULL BITLEN = (ULL)CHARLEN * 8;
+	ULL CP_LEN = CHARLEN + k + 8;
+	TEMPSOURCE[CP_LEN - 1] =  (BITLEN) & 0xff;
+	TEMPSOURCE[CP_LEN - 2] = ((BITLEN) >> 8) & 0xff;
+	TEMPSOURCE[CP_LEN - 3] = ((BITLEN) >> 16) & 0xff;
+	TEMPSOURCE[CP_LEN - 4] = ((BITLEN) >> 24) & 0xff;
+	TEMPSOURCE[CP_LEN - 5] = ((BITLEN) >> 32) & 0xff;
+	TEMPSOURCE[CP_LEN - 6] = ((BITLEN) >> 40) & 0xff;
+	TEMPSOURCE[CP_LEN - 7] = ((BITLEN) >> 48) & 0xff;
+	TEMPSOURCE[CP_LEN - 8] = ((BITLEN) >> 56) & 0xff;
+
 
 	//计算消息摘要
 
-	int A, B, C, D, E;
-	int H0, H1, H2, H3, H4;
-	int* W = new int[80];
+	UI A, B, C, D, E;
+	UI H0, H1, H2, H3, H4;
+	UI* W = new UI[80];
 	H0 = 0x67452301;
 	H1 = 0xEFCDAB89;
 	H2 = 0x98BADCFE;
 	H3 = 0x10325476;
 	H4 = 0xC3D2E1F0;
 
-	for (int Mi = 0; Mi < CP_LEN; Mi++)
+	for (int Mi = 0; Mi < CP_LEN / 64; Mi++)
 	{
 		UI BM = Mi * 64;
 		//TODO
-		for (int i = 0; i < 15; i++)
-			W[i] = *(int*)(TEMPSOURCE + i * 4 + BM);
+		for (int i = 0; i < 16; i++)
+		{
+			//小端序转为大端序
+			unsigned char* FIRST = (unsigned char*)(TEMPSOURCE + i * 4 + BM);
+			W[i] = ((UI)*FIRST) << 24 |
+				((UI)*(FIRST+1)) << 16 |
+				((UI)*(FIRST+2)) << 8 |
+				((UI)*(FIRST+3));
+		}
 		for (int i = 16; i < 80; i++)
-			W[i] = ((UI)(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16])) << 1;
+			W[i] = MyUtils::RoundShiftLeft<UI>(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16], 1);
 		A = H0;
 		B = H1;
 		C = H2;
@@ -108,14 +109,14 @@ void MyUtils::sha1(char* source, ULL CHARLEN, char out[20])
 		E = H4;
 		for (int i = 0; i < 80; i++)
 		{
-			int TEMP = ((UI)A) << 5 +
+			UI TEMP = MyUtils::RoundShiftLeft<UI>(A, 5) +
 				pb666::F(i, B, C, D) +
 				E +
 				W[i] +
 				pb666::K(i);
 			E = D;
 			D = C;
-			C = ((UI)B) << 30;
+			C = MyUtils::RoundShiftLeft<UI>(B, 30);
 			B = A;
 			A = TEMP;
 		}
@@ -126,36 +127,32 @@ void MyUtils::sha1(char* source, ULL CHARLEN, char out[20])
 		H4 = H4 + E;
 	}
 
+
 	//处理完成
-	UI UIH0 = (UI)H0;
-	out[0] = UIH0 & 0xff;
-	out[1] = (UIH0 >> 8) & 0xff;
-	out[2] = (UIH0 >> 16) & 0xff;
-	out[3] = (UIH0 >> 24) & 0xff;
+	out[0] = (H0 & 0xff000000) >> 24;
+	out[1] = (H0 & 0xff0000) >> 16;
+	out[2] = (H0 & 0xff00) >> 8;
+	out[3] = H0 & 0xff;
 
-	UI UIH1 = (UI)H1;
-	out[4] = UIH1 & 0xff;
-	out[5] = (UIH1 >> 8) & 0xff;
-	out[6] = (UIH1 >> 16) & 0xff;
-	out[7] = (UIH1 >> 24) & 0xff;
+	out[4] = (H1 & 0xff000000) >> 24;
+	out[5] = (H1 & 0xff0000) >> 16;
+	out[6] = (H1 & 0xff00) >> 8;
+	out[7] = H1 & 0xff;
 
-	UI UIH2 = (UI)H2;
-	out[8] = UIH0 & 0xff;
-	out[9] = (UIH0 >> 8) & 0xff;
-	out[10] = (UIH0 >> 16) & 0xff;
-	out[11] = (UIH0 >> 24) & 0xff;
+	out[8]  = (H2 & 0xff000000) >> 24;
+	out[9]  = (H2 & 0xff0000) >> 16;
+	out[10] = (H2 & 0xff00) >> 8;
+	out[11] = H2 & 0xff;
 
-	UI UIH3 = (UI)H3;
-	out[12] = UIH3 & 0xff;
-	out[13] = (UIH3 >> 8) & 0xff;
-	out[14] = (UIH3 >> 16) & 0xff;
-	out[15] = (UIH3 >> 24) & 0xff;
+	out[12] = (H3 & 0xff000000) >> 24;
+	out[13] = (H3 & 0xff0000) >> 16;
+	out[14] = (H3 & 0xff00) >> 8;
+	out[15] = H3 & 0xff;
 
-	UI UIH4 = (UI)H4;
-	out[16] = UIH4 & 0xff;
-	out[17] = (UIH4 >> 8) & 0xff;
-	out[18] = (UIH4 >> 16) & 0xff;
-	out[19] = (UIH4 >> 24) & 0xff;
+	out[16] = (H4 & 0xff000000) >> 24;
+	out[17] = (H4 & 0xff0000) >> 16;
+	out[18] = (H4 & 0xff00) >> 8;
+	out[19] = H4 & 0xff;
 
 	delete[] W;
 	delete[] TEMPSOURCE;

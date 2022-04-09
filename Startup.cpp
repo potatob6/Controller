@@ -7,13 +7,17 @@
 #pragma comment(lib, "ws2_32")
 
 using namespace std;
+
 int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
-	char* t = (char*)"illll";
+	char* t = (char*)"i love you";
 	char* buf = new char[20];
-	MyUtils::sha1(t, 5, buf);
-	cout << buf << endl;
+	MyUtils::SHA1(t, strlen(t), buf);
+	for (int i = 0; i < 20; i++)
+	{
+		printf("%02x", (unsigned char)buf[i]);
+	}
 	delete[] buf;
 	return 0;
 	try
