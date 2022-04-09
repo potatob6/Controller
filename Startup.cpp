@@ -23,21 +23,7 @@ int main()
 		printf("%02x", (unsigned char)buf[i]);
 	}
 	cout << endl;
-	UC* base64buf = new UC[20 * 4 / 3 + 3];
-	size_t outSize = 0;
-	size_t outAddcPos = 0;
-	errno_t ret = MyUtils::BASE64ENC(buf, 20, base64buf, 20 * 4 / 3 + 3, outSize, outAddcPos);
-	if (ret == 0)
-	{
-		for (int i = 0; i < outSize; i++)
-		{
-			if (i < outAddcPos)
-				printf("%c", MyUtils::BASE64TABLE[base64buf[i]]);
-			else
-				printf("=");
-		}
-	}
-	delete[] base64buf;
+	cout << MyUtils::BASE64ENCSTR((UC*)"123", 3) << endl;
 	delete[] buf;
 	return 0;
 	try

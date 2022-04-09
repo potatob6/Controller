@@ -1,5 +1,6 @@
 #include "MyUtils.h"
 #include <iostream>
+#include <string>
 using namespace pb666;
 void MyUtils::pushStringToList(string n, list<char>& chars)
 {
@@ -16,6 +17,7 @@ static T MyUtils::RoundShiftLeft(T c, UI n)
 	int TSIZE = sizeof(T);
 	return (c << (n % (TSIZE * 8))) | (c >> (TSIZE * 8 - (n % (TSIZE * 8))));
 }
+
 namespace pb666 {
 
 	int F(int t, int B, int C, int D)
@@ -198,7 +200,7 @@ errno_t MyUtils::BASE64ENC(UC source[], UI charlen, UC out[], size_t outArySize,
 	if (ADDB == 1)
 	{
 		UI LASTJBASE = 4 * (ADDB + charlen) / 3 - 4;
-		UC ADDCBASE = charlen - 2;
+		UI ADDCBASE = charlen - 2;
 		out[LASTJBASE] =     (source[ADDCBASE] & 0b11111100) >> 2;
 		out[LASTJBASE + 1] = ((source[ADDCBASE] & 0b11) << 4) | ((source[ADDCBASE + 1] & 0b11110000) >> 4);
 		out[LASTJBASE + 2] = ((source[ADDCBASE + 1] & 0b1111) << 2);
@@ -208,7 +210,7 @@ errno_t MyUtils::BASE64ENC(UC source[], UI charlen, UC out[], size_t outArySize,
 	else if(ADDB == 2)
 	{
 		UI LASTJBASE = 4 * (ADDB + charlen) / 3 - 4;
-		UC ADDCBASE = charlen - 1;
+		UI ADDCBASE = charlen - 1;
 		out[LASTJBASE] = (source[ADDCBASE] & 0b11111100) >> 2;
 		out[LASTJBASE + 1] = ((source[ADDCBASE] & 0b11) << 4);
 		out[LASTJBASE + 2] = 0;
@@ -217,4 +219,25 @@ errno_t MyUtils::BASE64ENC(UC source[], UI charlen, UC out[], size_t outArySize,
 	}
 	outEncodingSize = 4 * (ADDB + charlen) / 3;
 	return 0;
+}
+using namespace std;
+string MyUtils::BASE64ENCSTR(UC source[], UI sourceLength)
+{
+	UC* u = new UC[sourceLength * 4 / 3 + 3];
+	string TEMP;
+	UI offLength, emptyLen;
+	MyUtils::BASE64ENC(source, sourceLength, u, sourceLength * 4 / 3 + 3, offLength, emptyLen);
+	for (int i = 0; i < offLength; i++)
+	{
+		if (i < emptyLen)
+		{
+			TEMP.push_back(MyUtils::BASE64TABLE[u[i]]);
+		}
+		else
+		{
+			TEMP.push_back('=');
+		}
+	}
+	delete[] u;
+	return TEMP;
 }
