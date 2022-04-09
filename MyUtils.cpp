@@ -221,6 +221,11 @@ errno_t MyUtils::BASE64ENC(UC source[], UI charlen, UC out[], size_t outArySize,
 	return 0;
 }
 using namespace std;
+string MyUtils::BASE64ENCSTR(UC source[])
+{
+	UI len = strlen((char*)source);
+	return MyUtils::BASE64ENCSTR(source, len);
+}
 string MyUtils::BASE64ENCSTR(UC source[], UI sourceLength)
 {
 	UC* u = new UC[sourceLength * 4 / 3 + 3];

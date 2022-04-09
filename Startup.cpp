@@ -23,7 +23,7 @@ int main()
 		printf("%02x", (unsigned char)buf[i]);
 	}
 	cout << endl;
-	cout << MyUtils::BASE64ENCSTR((UC*)"123", 3) << endl;
+	cout << MyUtils::BASE64ENCSTR((UC*)"fuckinglove") << endl;
 	delete[] buf;
 	return 0;
 	try
