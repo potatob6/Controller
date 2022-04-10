@@ -15,16 +15,22 @@ using namespace pb666;
 int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
+
+	//一次WebSocket握手协议的BASE64编解码与SHA1
 	char* t = (char*)"zsclVTq+juB3I2dETaPNnw==";
+	UC* decbuf = new UC[strlen(t) * 3 / 4];
 	UC* buf = new UC[20];
-	MyUtils::SHA1(t, strlen(t), (char*)buf);
-	for (int i = 0; i < 20; i++)
+
+	size_t outsize;
+	errno_t ret = MyUtils::BASE64DECSTR(t, (char*)decbuf, strlen(t) * 3 / 4, outsize);
+	if (ret == 0)
 	{
-		printf("%02x", (unsigned char)buf[i]);
+		MyUtils::SHA1((char*)decbuf, outsize, (char*)buf);
+		cout << "SHA1:" + MyUtils::ToHexDigest(buf, 20) << endl;
+		cout << "BASE64:" + MyUtils::BASE64ENCSTR(buf, 20) << endl;
 	}
-	cout << endl;
-	cout << MyUtils::BASE64ENCSTR((UC*)"fuckinglove") << endl;
-	delete[] buf;
+	
+	delete[] buf, decbuf;
 	return 0;
 	try
 	{

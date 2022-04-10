@@ -226,6 +226,7 @@ string MyUtils::BASE64ENCSTR(UC source[])
 	UI len = strlen((char*)source);
 	return MyUtils::BASE64ENCSTR(source, len);
 }
+
 string MyUtils::BASE64ENCSTR(UC source[], UI sourceLength)
 {
 	UC* u = new UC[sourceLength * 4 / 3 + 3];
@@ -245,4 +246,106 @@ string MyUtils::BASE64ENCSTR(UC source[], UI sourceLength)
 	}
 	delete[] u;
 	return TEMP;
+}
+
+errno_t BASE64DECTABLE(UC c, UC& out)
+{
+	if (c >= (UC)'A' && c <= (UC)'Z')
+	{
+		out = c - (UC)'A';
+		return 0;
+	}
+	if (c >= (UC)'a' && c <= (UC)'z')
+	{
+		out = c - (UC)'a' + 26;
+		return 0;
+	}
+	if (c >= (UC)'0' && c <= (UC)'9')
+	{
+		out = c - (UC)'0' + 52;
+		return 0;
+	}
+
+	switch (c)
+	{
+		case (UC)'+':
+			out = 62;
+			return 0;
+		case (UC)'-':
+			out = 63;
+			return 0;
+		case (UC)'=':
+			out = 0;
+			return 0;
+		default:
+			return 1;
+	}
+	return 1;
+}
+
+errno_t MyUtils::BASE64DECSTR(string source, char* dest, size_t destSize, size_t& outSize)
+{
+	if (source.size() % 4 != 0)
+	{
+		return 1;
+	}
+	//检查dest长度是否足够
+	if (destSize < source.size() * 3 / 4)
+	{
+		return 2;
+	}
+	UI ADDC = 0;
+	UC* TEMP = new UC[source.size()];
+
+	auto itor = source.begin();
+	int i = 0;
+	bool success = true;
+	for (; itor != source.end(); itor++)
+	{
+		UC READB;
+		errno_t ret = BASE64DECTABLE((UC)*itor, READB);
+		if (ret == 1)
+		{
+			success = false;
+			break;
+		}
+		TEMP[i] = READB;
+		if (*itor == '=')
+		{
+			ADDC++;
+		}
+		i++;
+	}
+	if (!success)
+	{
+		delete[] TEMP;
+		return 1;
+	}
+
+	outSize = source.size() * 3 / 4 - ADDC;
+
+	i = 0;
+	int j = 0;
+	for (; i < source.size(); i+=4)
+	{
+		dest[j] = ((TEMP[i] & 0b111111) << 2) | ((TEMP[i + 1] & 0b110000) >> 4);
+		dest[j + 1] = ((TEMP[i + 1] & 0b1111) << 4) | ((TEMP[i + 2] & 0b111100) >> 2);
+		dest[j + 2] = ((TEMP[i + 2] & 0b11) << 6) | (TEMP[i + 3] & 0b111111);
+		j+=3;
+	}
+
+	delete[] TEMP;
+	return 0;
+}
+
+string MyUtils::ToHexDigest(UC* s, size_t slen)
+{
+	string n;
+	for (int i = 0; i < slen; i++)
+	{
+		char t[3] = {0};
+		sprintf_s(t, 3, "%02x", s[i]);
+		n.append(t);
+	}
+	return n;
 }
