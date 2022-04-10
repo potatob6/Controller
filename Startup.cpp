@@ -16,21 +16,16 @@ int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
 
-	//一次WebSocket握手协议的BASE64编解码与SHA1
-	char* t = (char*)"zsclVTq+juB3I2dETaPNnw==";
-	UC* decbuf = new UC[strlen(t) * 3 / 4];
+	//一次完整的WebSocket握手协议的BASE64编解码与SHA1
+	char* t = (char*)"dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 	UC* buf = new UC[20];
 
 	size_t outsize;
-	errno_t ret = MyUtils::BASE64DECSTR(t, (char*)decbuf, strlen(t) * 3 / 4, outsize);
-	if (ret == 0)
-	{
-		MyUtils::SHA1((char*)decbuf, outsize, (char*)buf);
-		cout << "SHA1:" + MyUtils::ToHexDigest(buf, 20) << endl;
-		cout << "BASE64:" + MyUtils::BASE64ENCSTR(buf, 20) << endl;
-	}
+	MyUtils::SHA1(t, strlen(t), (char*)buf);
+	cout << "SHA1:" + MyUtils::ToHexDigest(buf, 20) << endl;
+	cout << "BASE64:" + MyUtils::BASE64ENCSTR(buf, 20) << endl;
 	
-	delete[] buf, decbuf;
+	delete[] buf;
 	return 0;
 	try
 	{

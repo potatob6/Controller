@@ -45,13 +45,13 @@ namespace pb666 {
 }
 void MyUtils::SHA1(char* source, ULL CHARLEN, char out[20])
 {
-	char* TEMPSOURCE = new char[CHARLEN + 64];
+	char* TEMPSOURCE = new char[CHARLEN + 72];
 	for (int i = 0; i < CHARLEN; i++)
 	{
 		TEMPSOURCE[i] = source[i];
 	}
 
-	UI _k = 56 - (CHARLEN % 64);
+	int _k = 56 - (CHARLEN % 64);
 	UI k = _k > 0 ? _k : (_k == 0 ? 64 : 64 + _k);
 	//ฒนฮป
 	for (int i = 0; i < k; i++)
