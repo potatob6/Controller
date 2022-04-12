@@ -36,6 +36,7 @@ private:
 	string sPort;
 	void getConnection();
 	UI recvResponses = 0;
+	bool autoReconnect = true;                //断开后是否自动重连（除非客户端已经关闭）
 public:
 	ULL mmbs = 0;         //mmbs(Memory Max Body Size)Http体接收到内存最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
 	ULL fmbs = 0;         //fmbs(File Max Body Size)Http体接收到文件的最大长度，同上

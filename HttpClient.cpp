@@ -6,6 +6,7 @@
 #include <iostream>
 #include "GlobalParameters.h"
 #include "HttpResponse.h"
+#include "HttpResponseHandler.h"
 
 using namespace std;
 using namespace pb666;
@@ -45,24 +46,27 @@ char HttpClient::getNextByte()
 			cout << u8"total_recv返回码" << total_recv << endl;
 			cout << u8"WSAGetLastError返回码" << RET << endl;
 #endif
-			//socket已经断开
-			//重试三次
-			for (int i = 0; i < RETRY_TIMES; i++)
-			{
-#ifdef DEBUG_MODE
-				cout << u8"Recv失败，正在重试第" << i + 1 << u8"次" << endl;
-#endif
-				try {
-					getConnection();
-					throw - 7;      //抛出-7异常让StartUp重新启动
-				}
-				catch (int e)
+			if (autoReconnect) {
+				//socket已经断开
+//重试三次
+				for (int i = 0; i < RETRY_TIMES; i++)
 				{
-					if (e == -7)
-						throw - 7;
-					Sleep(HTTPCLIENT_RETRY_DELAY);
-					continue;
+#ifdef DEBUG_MODE
+					cout << u8"Recv失败，正在重试第" << i + 1 << u8"次" << endl;
+#endif
+					try {
+						getConnection();
+						throw - 7;      //抛出-7异常让StartUp重新启动
+					}
+					catch (int e)
+					{
+						if (e == -7)
+							throw - 7;
+						Sleep(HTTPCLIENT_RETRY_DELAY);
+						continue;
+					}
 				}
+				throw - 5;
 			}
 			throw - 5;
 		}
@@ -168,23 +172,28 @@ resend:
 		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
 #endif
 
-		//尝试三次建立新的TCP连接
-		for (int i = 0; i < RETRY_TIMES; i++)
+		if (autoReconnect)
 		{
-			try {
-#ifdef DEBUG_MODE
-				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
-#endif
-				getConnection();
-				cout << u8"重连成功" << endl;
-				goto resend;
-				break;
-			}
-			catch (int e)
+			//尝试三次建立新的TCP连接
+			for (int i = 0; i < RETRY_TIMES; i++)
 			{
-				Sleep(HTTPCLIENT_RETRY_DELAY);
-				continue;
+				try {
+#ifdef DEBUG_MODE
+					cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
+#endif
+					getConnection();
+					cout << u8"重连成功" << endl;
+					goto resend;
+					break;
+				}
+				catch (int e)
+				{
+					Sleep(HTTPCLIENT_RETRY_DELAY);
+					continue;
+				}
 			}
+			throw - 1;
+
 		}
 		throw - 1;
 	}
@@ -222,24 +231,28 @@ resend:
 		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
 #endif
 
-		//尝试三次建立新的TCP连接
-		for (int i = 0; i < RETRY_TIMES; i++)
+		if (autoReconnect)
 		{
-			try {
-#ifdef DEBUG_MODE
-				cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
-#endif
-				getConnection();
-				ResetAllFlags();
-				cout << u8"重连成功" << endl;
-				goto resend;
-				break;
-			}
-			catch (int e)
+			//尝试三次建立新的TCP连接
+			for (int i = 0; i < RETRY_TIMES; i++)
 			{
-				Sleep(HTTPCLIENT_RETRY_DELAY);
-				continue;
+				try {
+#ifdef DEBUG_MODE
+					cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
+#endif
+					getConnection();
+					ResetAllFlags();
+					cout << u8"重连成功" << endl;
+					goto resend;
+					break;
+				}
+				catch (int e)
+				{
+					Sleep(HTTPCLIENT_RETRY_DELAY);
+					continue;
+				}
 			}
+			throw - 1;
 		}
 		throw - 1;
 	}
@@ -474,61 +487,67 @@ int HttpClient::StartUpIP(string ip, int port)
 			string sendHeadBuf = Send("GET", u8"/ws", "Hello");
 			string recvHead = ReceiveHead();
 			HttpResponse response = HttpResponse::parseResponse(recvHead);
-			//TODO 解析头部信息
-			SSP clh, rspm, connm;
-			bool finded = response.getPair("Content-Length", &clh);
-			bool cmdm = response.getPair("Response-Mode", &rspm);
-			bool conn = response.getPair("Connection", &connm);
-			if (finded)
+
+			HttpResponseHandler httpResponseHandler(this, &response);
+			errno_t ret = httpResponseHandler.Handle();
+			if (ret == 0)
 			{
-				//有Content-Length
-				//测试情况下先加载到内存
-				ULL l = atoi(clh.second.c_str());
-				char* cs = new char[l + 1];
-				cs[l] = 0;
-				try {
-					ReadContentLengthToMemory(l, cs);
-				}
-				catch (int e) {
-					delete[] cs;
-					throw e;
-				}
-				cout << u8"来自服务器的来信" << endl;
-				cout << cs << endl;
-				if (cmdm && rspm.second.compare("command") == 0) {
-					cout << u8"执行命令:" << cs << endl;
-					//system(cs);
-				}
-				//以下是测试，具体问题还有会读取两次头部
-				//FILE* fp;
-				//fopen_s(&fp, "D:\\share\\a.txt", "wb");
-				//size_t st = fwrite(cs, 1, l, fp);
-				//fclose(fp);
-				if (cmdm && rspm.second.compare("messgage-box") == 0)
-				{
-					cout << u8"执行消息盒子" << endl;
-					wchar_t* wcs = new wchar_t[l + 1];
-					mbstowcs_s((size_t*)&l, wcs, l, cs, (size_t)l);
-					delete[] wcs;
-				}
-				delete[] cs;
-				Sleep(50);
+				//success
 			}
 			else
 			{
-				//无Content-Length
-				SSP ckh;
-				bool findChunked = response.getPair("Transfer-Encoding", &ckh);
-				if (!findChunked)
-				{
-					//无Transfer-Encoding，不合规的头部，丢弃
-
-				}
-				else
-				{
-					//有Transfer-Encoding
-				}
+				throw ret;
 			}
+
+			//SSP clh, rspm, connm;
+			//bool finded = response.getPair("Content-Length", &clh);
+			//bool cmdm = response.getPair("Response-Mode", &rspm);
+			//bool conn = response.getPair("Connection", &connm);
+			//if (finded)
+			//{
+			//	//有Content-Length
+			//	//测试情况下先加载到内存
+			//	ULL l = atoi(clh.second.c_str());
+			//	char* cs = new char[l + 1];
+			//	cs[l] = 0;
+			//	try {
+			//		ReadContentLengthToMemory(l, cs);
+			//	}
+			//	catch (int e) {
+			//		delete[] cs;
+			//		throw e;
+			//	}
+			//	cout << u8"来自服务器的来信" << endl;
+			//	cout << cs << endl;
+			//	if (cmdm && rspm.second.compare("command") == 0) {
+			//		cout << u8"执行命令:" << cs << endl;
+			//		//system(cs);
+			//	}
+			//	if (cmdm && rspm.second.compare("messgage-box") == 0)
+			//	{
+			//		cout << u8"执行消息盒子" << endl;
+			//		wchar_t* wcs = new wchar_t[l + 1];
+			//		mbstowcs_s((size_t*)&l, wcs, l, cs, (size_t)l);
+			//		delete[] wcs;
+			//	}
+			//	delete[] cs;
+			//	Sleep(50);
+			//}
+			//else
+			//{
+			//	//无Content-Length
+			//	SSP ckh;
+			//	bool findChunked = response.getPair("Transfer-Encoding", &ckh);
+			//	if (!findChunked)
+			//	{
+			//		//无Transfer-Encoding，不合规的头部，丢弃
+
+			//	}
+			//	else
+			//	{
+			//		//有Transfer-Encoding
+			//	}
+			//}
 			recvResponses++;
 			//if (conn && connm.second.compare("close") == 0)
 			//{
