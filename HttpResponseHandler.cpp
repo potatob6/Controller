@@ -8,12 +8,15 @@ HttpResponseHandler::HttpResponseHandler(HttpClient* client, HttpResponse* respo
 	this->response = response;
 }
 
+//能进入此的一般都是文件类型，所以暂时先不用区分类型
 errno_t HttpResponseHandler::Handle()
 {
 	SSP clh, rspm, connm;
+	SSP trf;
 	bool finded = response->getPair("Content-Length", &clh);
-	bool cmdm = response->getPair("Response-Mode", &rspm);
-	bool conn = response->getPair("Connection", &connm);
+	bool findedTranser = response->getPair("Transfer-Encoding", &trf);
+	//bool cmdm = response->getPair("Response-Mode", &rspm);
+	//bool conn = response->getPair("Connection", &connm);
 	if (finded)
 	{
 		//有Content-Length
@@ -23,43 +26,23 @@ errno_t HttpResponseHandler::Handle()
 		cs[l] = 0;
 		try {
 			client->ReadContentLengthToMemory(l, cs);
+
 		}
 		catch (int e) {
 			delete[] cs;
+			//接收失败
+			//将当前MessageNo以及结果返回给WebSocket
+			//TODO
 			return e;
 		}
-		//TODO 做完返回响应的模块处理
-		cout << u8"来自服务器的来信" << endl;
-		cout << cs << endl;
-		if (cmdm && rspm.second.compare("command") == 0) {
-			cout << u8"执行命令:" << cs << endl;
-			//system(cs);
-		}
-		if (cmdm && rspm.second.compare("messgage-box") == 0)
-		{
-			cout << u8"执行消息盒子" << endl;
-			wchar_t* wcs = new wchar_t[l + 1];
-			mbstowcs_s((size_t*)&l, wcs, l, cs, (size_t)l);
-			delete[] wcs;
-		}
+
 		delete[] cs;
-		Sleep(50);
+		return 0;
 	}
-	else
+	else if(findedTranser)
 	{
-		//无Content-Length
-		SSP ckh;
-		bool findChunked = response->getPair("Transfer-Encoding", &ckh);
-		if (!findChunked)
-		{
-			//无Transfer-Encoding，不合规的头部，丢弃
 
-		}
-		else
-		{
-			//有Transfer-Encoding
-		}
+		return 0;
 	}
-
-	return 0;
+	return 1;
 }

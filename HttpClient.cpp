@@ -145,86 +145,67 @@ bool HttpClient::judgeRnRn(char nb)
 	return false;
 }
 
-string HttpClient::Send(string method, string url, string content)
+void HttpClient::addMessage(string method, string url, string content)
 {
-	HttpRequest httpRequest;
-	httpRequest._method = method;
-	httpRequest._httpVersion = "HTTP/1.1";
-	httpRequest._requestBody = content;
-	httpRequest._url = url;
+	WaitForSingleObject(AddMessageLock, INFINITE);
+	HttpRequest* httpRequest = new HttpRequest;
+	httpRequest->_method = method;
+	httpRequest->_httpVersion = "HTTP/1.1";
+	httpRequest->_requestBody = content;
+	httpRequest->_url = url;
 	char b1[20];
 	_itoa_s(content.size(), b1, 10);
-	httpRequest.setAttribute("Content-Length", b1);
-	httpRequest.setAttribute("Connection", "keep-alive");
+	httpRequest->setAttribute("Content-Length", b1);
+	httpRequest->setAttribute("Connection", "keep-alive");
 	if (ip.compare("") != 0 && iPort != 0)
-		httpRequest.setAttribute("Host", ip + ":" + sPort);
+		httpRequest->setAttribute("Host", ip + ":" + sPort);
 
-	unsigned int len = httpRequest.toString().size();
-	const char* c1 = httpRequest.toString().c_str();
-resend:
-	LL results = send(server, httpRequest.toString().c_str(), len, 0);
-#ifdef DEBUG_MODE
-	cout << u8"发送报文" << httpRequest.toString() << endl;
-#endif
-	if (results == SOCKET_ERROR)
-	{
-#ifdef DEBUG_MODE
-		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
-#endif
-
-		if (autoReconnect)
-		{
-			//尝试三次建立新的TCP连接
-			for (int i = 0; i < RETRY_TIMES; i++)
-			{
-				try {
-#ifdef DEBUG_MODE
-					cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
-#endif
-					getConnection();
-					cout << u8"重连成功" << endl;
-					goto resend;
-					break;
-				}
-				catch (int e)
-				{
-					Sleep(HTTPCLIENT_RETRY_DELAY);
-					continue;
-				}
-			}
-			throw - 1;
-
-		}
-		throw - 1;
-	}
-	return httpRequest.toString();
-
+	addMessgaeBuffer.push_back(httpRequest);
+	ReleaseSemaphore(SendSemaphore, 1, NULL);
+	ReleaseMutex(AddMessageLock);
 }
 
-string HttpClient::Send(string method, string url, map<string, string> extraAttribute, string content)
+void HttpClient::addMessage(string method, string url, map<string, string> extraAttribute, string content)
 {
-	HttpRequest httpRequest;
-	httpRequest._method = method;
-	httpRequest._httpVersion = "HTTP/1.1";
+	WaitForSingleObject(AddMessageLock, INFINITE);
+	HttpRequest* httpRequest = new HttpRequest;
+	httpRequest->_method = method;
+	httpRequest->_httpVersion = "HTTP/1.1";
 	auto key_itor = extraAttribute.begin();
-	httpRequest._requestBody = content;
+	httpRequest->_requestBody = content;
 	char b1[20];
 	_itoa_s(content.size(), b1, 10);
-	httpRequest.setAttribute("Content-Length", b1);
-	httpRequest.setAttribute("Connection", "keep-alive");
+	httpRequest->setAttribute("Content-Length", b1);
+	httpRequest->setAttribute("Connection", "keep-alive");
 	if (ip.compare("") != 0 && iPort != 0)
-		httpRequest.setAttribute("Host", ip + ":" + sPort);
+		httpRequest->setAttribute("Host", ip + ":" + sPort);
 	for (; key_itor != extraAttribute.end(); key_itor++)
 	{
 		string first = key_itor->first;
 		string second = key_itor->second;
-		httpRequest.setAttribute(first, second);
+		httpRequest->setAttribute(first, second);
 	}
 
-	unsigned int len = httpRequest.toString().size();
-	const char* c1 = httpRequest.toString().c_str();
+	addMessgaeBuffer.push_back(httpRequest);
+
+	ReleaseSemaphore(SendSemaphore, 1, NULL);
+	ReleaseMutex(AddMessageLock);
+}
+
+void HttpClient::Send()
+{
+	WaitForSingleObject(SendSemaphore, INFINITE);
+	WaitForSingleObject(AddMessageLock, INFINITE);
+
+	HttpRequest* htq = addMessgaeBuffer.front();
+
+	unsigned int len = htq->toString().size();
+	const char* c1 = htq->toString().c_str();
 resend:
-	int results = send(server, httpRequest.toString().c_str(), len, 0);
+	LL results = send(server, htq->toString().c_str(), len, 0);
+#ifdef DEBUG_MODE
+	cout << u8"发送报文" << htq->toString() << endl;
+#endif
 	if (results == SOCKET_ERROR)
 	{
 #ifdef DEBUG_MODE
@@ -241,7 +222,6 @@ resend:
 					cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
 #endif
 					getConnection();
-					ResetAllFlags();
 					cout << u8"重连成功" << endl;
 					goto resend;
 					break;
@@ -252,12 +232,84 @@ resend:
 					continue;
 				}
 			}
+
+			delete htq;
+			addMessgaeBuffer.pop_front();
+			ReleaseMutex(AddMessageLock);
+
 			throw - 1;
+
 		}
+
+		delete htq;
+		addMessgaeBuffer.pop_front();
+		ReleaseMutex(AddMessageLock);
+
 		throw - 1;
 	}
-	return httpRequest.toString();
+
+	delete htq;
+	addMessgaeBuffer.pop_front();
+	ReleaseMutex(AddMessageLock);
 }
+//
+//string HttpClient::Send(string method, string url, map<string, string> extraAttribute, string content)
+//{
+//	HttpRequest httpRequest;
+//	httpRequest._method = method;
+//	httpRequest._httpVersion = "HTTP/1.1";
+//	auto key_itor = extraAttribute.begin();
+//	httpRequest._requestBody = content;
+//	char b1[20];
+//	_itoa_s(content.size(), b1, 10);
+//	httpRequest.setAttribute("Content-Length", b1);
+//	httpRequest.setAttribute("Connection", "keep-alive");
+//	if (ip.compare("") != 0 && iPort != 0)
+//		httpRequest.setAttribute("Host", ip + ":" + sPort);
+//	for (; key_itor != extraAttribute.end(); key_itor++)
+//	{
+//		string first = key_itor->first;
+//		string second = key_itor->second;
+//		httpRequest.setAttribute(first, second);
+//	}
+//
+//	unsigned int len = httpRequest.toString().size();
+//	const char* c1 = httpRequest.toString().c_str();
+//resend:
+//	int results = send(server, httpRequest.toString().c_str(), len, 0);
+//	if (results == SOCKET_ERROR)
+//	{
+//#ifdef DEBUG_MODE
+//		cout << u8"Send失败，尝试" << RETRY_TIMES << u8"次建立新连接发送" << endl;
+//#endif
+//
+//		if (autoReconnect)
+//		{
+//			//尝试三次建立新的TCP连接
+//			for (int i = 0; i < RETRY_TIMES; i++)
+//			{
+//				try {
+//#ifdef DEBUG_MODE
+//					cout << u8"正在尝试第" << i + 1 << u8"次连接" << endl;
+//#endif
+//					getConnection();
+//					ResetAllFlags();
+//					cout << u8"重连成功" << endl;
+//					goto resend;
+//					break;
+//				}
+//				catch (int e)
+//				{
+//					Sleep(HTTPCLIENT_RETRY_DELAY);
+//					continue;
+//				}
+//			}
+//			throw - 1;
+//		}
+//		throw - 1;
+//	}
+//	return httpRequest.toString();
+//}
 
 string HttpClient::ReceiveHead()
 {
@@ -306,12 +358,27 @@ string HttpClient::ReceiveHead()
 
 HttpClient::HttpClient()
 {
+	SendSemaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
+	AddMessageLock = CreateMutex(NULL, NULL, NULL);
 	_recv_buf = new char[1024 * 1024 + 1];
 	_recv_buf[1024 * 1024] = 0;
 }
 
 HttpClient::~HttpClient()
 {
+	//清空消息缓冲区
+	WaitForSingleObject(AddMessageLock, INFINITE);
+	int size = addMessgaeBuffer.size();
+	for (int i = 0; i < size; i++)
+	{
+		HttpRequest* front = addMessgaeBuffer.front();
+		addMessgaeBuffer.pop_front();
+		delete front;
+	}
+	ReleaseMutex(AddMessageLock);
+
+	CloseHandle(SendSemaphore);
+	CloseHandle(AddMessageLock);
 	delete[] _recv_buf;
 	_recv_buf = NULL;
 }
@@ -319,6 +386,7 @@ HttpClient::~HttpClient()
 void HttpClient::ReadBodyToFile(string filePath)
 {
 	//TODO
+	
 }
 
 string HttpClient::ReadBodyToMemory()
@@ -481,10 +549,12 @@ int HttpClient::StartUpIP(string ip, int port)
 	//连接成功
 
 	bool exit = false;
+
+	addMessage("GET", u8"/tt1", "Hello");
 	while (!exit)
 	{
 		try {
-			string sendHeadBuf = Send("GET", u8"/ws", "Hello");
+			Send();
 			string recvHead = ReceiveHead();
 			HttpResponse response = HttpResponse::parseResponse(recvHead);
 

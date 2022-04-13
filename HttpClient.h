@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include "GlobalParameters.h"
 
+class HttpRequest;
 using namespace std;
 using namespace pb666;
 class HttpClient {
@@ -37,12 +38,20 @@ private:
 	void getConnection();
 	UI recvResponses = 0;
 	bool autoReconnect = true;                //断开后是否自动重连（除非客户端已经关闭）
+	HANDLE SendSemaphore;
+	HANDLE AddMessageLock;
+	list<HttpRequest*> addMessgaeBuffer;      //即将发送的消息队列
 public:
+	WCHAR nextResponseSaveToFile;             //下一次Response的Response-Mode不为file时保存的位置
+	UI    messageNo;                          //下一次Request对应的消息编号，用于返回给WebSocket报告情况
 	ULL mmbs = 0;         //mmbs(Memory Max Body Size)Http体接收到内存最大接收长度，若超过此长度后面的部分将会被丢弃，若为0则无限（可能会内存崩溃）
 	ULL fmbs = 0;         //fmbs(File Max Body Size)Http体接收到文件的最大长度，同上
 
- 	string Send(string method, string url, string content);       //发送Http报文，只含有默认属性
-	string Send(string method, string url, map<string, string> extraAttribute, string content); //发送Http报文，可以自定义属性
+ 	void Send();       //发送Http报文
+	//string Send(string method, string url, map<string, string> extraAttribute, string content); //发送Http报文，可以自定义属性
+
+	void addMessage(string method, string url, string content);
+	void addMessage(string method, string url, map<string, string> extraAttribute, string content);
 
 	void ReadContentLengthToMemory(ULL, char*);//读取Content-Length长度到内存中，受控于mmbs
 	string ReadNextLineToMemory();     //读取下一行

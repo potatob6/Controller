@@ -26,7 +26,7 @@ int main()
 	cout << "BASE64:" + MyUtils::BASE64ENCSTR(buf, 20) << endl;
 	
 	delete[] buf;
-	return 0;
+
 	try
 	{
 		//客户端启动
