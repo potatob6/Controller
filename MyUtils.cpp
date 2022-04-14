@@ -349,3 +349,28 @@ string MyUtils::ToHexDigest(UC* s, size_t slen)
 	}
 	return n;
 }
+
+int MyUtils::GETFIN(WebSocketHeader* header)
+{
+	return (header -> FRRROPCODE & 0b10000000) >> 7;
+}
+
+int MyUtils::GETRESV(WebSocketHeader* header, int n)
+{
+	if (n == 1)
+		return (header->FRRROPCODE & 0b01000000) >> 6;
+	if (n == 2)
+		return (header->FRRROPCODE & 0b00100000) >> 5;
+	if (n == 3)
+		return (header->FRRROPCODE & 0b00010000) >> 5;
+}
+
+UI MyUtils::GETOPCODE(WebSocketHeader* header)
+{
+	return header->FRRROPCODE & 0b1111;
+}
+
+UC MyUtils::GETPAYLOADLEN(WebSocketHeader* header)
+{
+	return header->PAYLOADLEN;
+}

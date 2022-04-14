@@ -14,5 +14,16 @@ namespace pb666 {
 	typedef long long LL;
 	typedef map<string, string> MSS;
 	typedef unsigned char UC;
-	typedef unsigned int UINT32;
 }
+
+using namespace pb666;
+#pragma pack(1)
+typedef struct
+{
+	UC       FRRROPCODE;
+	UC       PAYLOADLEN;
+	//uint16_t EXTPAYLOAD;          //这两个在WebSocketClient中根据PAYLOADLEN获取
+	//uint32_t EXTPAYLOADCONTINUE;
+	//TODO
+}WebSocketHeader;
+#pragma pack()
